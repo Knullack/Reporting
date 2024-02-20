@@ -5,6 +5,7 @@ from tkinter.constants import *
 import sys
 from os.path import join, dirname
 import logging
+import base64
 
 logging.basicConfig(level=logging.INFO)
 
@@ -12,21 +13,22 @@ ANDON_SITE = "http://fc-andons-na.corp.amazon.com/HDC3?category=Pick&type=No+Sca
 LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
 
 #code has launcher but needs a function that user can add website and html element that needs to be seen for program to screenshot it
-websites = [
-    'https://www.google.com',
-    'https://www.amazon.com'
+websites = {
+    'https://www.psu.edu': '/html/body/div/section[5]/div/div',
+    'https://www.reddit.com': "/html/body/shreddit-app/div/div[1]/div[2]/main/dsa-transparency-modal-provider/shreddit-feed/article[1]",
+    'https://www.kaggle.com':'/html/body/main/div[1]/div/div[5]/div[2]/div/div/section[3]/div[2]/div[3]'
     #'https://fcmenu.iad.regionalized.corp.amazon.com/HDC3/entry/200'
-]
+}
 
 class reporterApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Andon Resolver")
-        self.root.geometry("300x150")
+        self.root.geometry("300x200")
         self.root.resizable(width=False, height=False)
         self.root.configure(background="white")
         self.badge = tk.IntVar()
-        self.count = tk.IntVar()
+        self.newWindow = tk.BooleanVar()
         self.headless = tk.BooleanVar()
         self.output_text = tk.StringVar()
         self.output_text.set(value="")
@@ -36,27 +38,30 @@ class reporterApp:
             self.root.iconbitmap(icon_path)
         except tk.TclError:
             None
-        self.create_widgets(self.badge, self.count, self.headless, self.output_text)
+        self.create_widgets(self.badge, self.newWindow, self.headless, self.output_text)
 
-    def create_widgets(self, badge, count, bool_head, output_text):
+    def create_widgets(self, badge, nwWindow, bool_head, output_text):
         label = tk.Label(self.root, text="Badge Number", font=("Arial", 10), fg="#333333", justify="center", background="white")
-        label.place(x=30, y=100, width=100, height=30)
+        label.place(x=10, y=80, width=100, height=30)
 
         entry_Badge = tk.Entry(self.root, borderwidth="2px", font=("Arial", 10), fg="#333333", justify="center", textvariable=badge)
         entry_Badge.delete(first=0)
-        entry_Badge.place(x=150, y=30, width=100, height=30)
+        entry_Badge.place(x=115, y=80, width=100, height=30)
         entry_Badge.focus()
 
         # Checkbutton
-        check_button = tk.Checkbutton(self.root, text="Hide Browser Window", font=("Arial", 10), fg="#333333", variable=bool_head, anchor='w', background="white")
-        check_button.place(x=10, y=30, width=130, height=25)
+        check_button = tk.Checkbutton(self.root, text="Hide Browser Window?", font=("Arial", 10), fg="#333333", variable=bool_head, anchor='w', background="white")
+        check_button.place(x=10, y=20, width=160, height=25)
+
+        newWindow_chkButton = tk.Checkbutton(self.root, text='New Window?', font=('Arial', 10), fg='#333333', variable=nwWindow, anchor='w', background='white')
+        newWindow_chkButton.place(x=10, y=50, width=130, height=25)
         # Button
         button = tk.Button(self.root, text="Resolve Andons", bg="#4CAF50", font=("Arial", 10, "bold"), fg="white", command=self.gather)
-        button.place(x=50, y=75, width=120, height=30)
+        button.place(x=90, y=135, width=120, height=30)
         
         # Label
         output = tk.Label(self.root, textvariable=output_text, font=("Arial", 10), fg="#333333", justify="center", background="white", anchor='w')
-        output.place(x=30, y=110, width=300, height=30)
+        output.place(x=60, y=170, width=300, height=20)
 
     def gather(self):
         from selenium.common.exceptions import NoSuchElementException
@@ -106,6 +111,11 @@ class reporterApp:
         self.install_module('selenium')
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from selenium.common.exceptions import NoSuchElementException
+        from selenium.webdriver.common.action_chains import ActionChains
+        import io
+        from PIL import Image
+
         optionals = ChromeOptions()
         optionals.add_argument('--log-level=3')
         optionals.add_argument('--force-device-scale-factor=0.7')
@@ -114,13 +124,28 @@ class reporterApp:
 
         if head:
             optionals.add_argument('--headless')
-        
 
         driver = webdriver.Chrome(options=optionals)
-        driver.implicitly_wait(10)
-        for site in websites:
-            self.navigate_to_website(driver, site)
+        driver.implicitly_wait(5)
+        pngCount = 0
+        offset = 200
+        actions = ActionChains(driver)
         
+
+        for site, xpath in websites.items():
+            driver.maximize_window()
+            self.navigate_to_website(driver, site)
+            try:
+                actions.move_to_element(driver.find_element('xpath',xpath)).perform()
+                # actions.scroll_by_amount(0,offset).perform()
+                # driver.execute_script(f'window.scrollBy(0,{offset});')
+                image_binary  = driver.find_element('xpath', xpath).screenshot_as_png
+                img = Image.open(io.BytesIO(image_binary))
+                pngCount += 1
+                img.save(f"image{pngCount}.png")
+            except NoSuchElementException as e:
+                logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {e}")
+
         driver.quit()
 
 if __name__ == "__main__":
