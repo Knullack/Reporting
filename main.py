@@ -23,22 +23,22 @@ websites = {
 class reporterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Andon Resolver")
+        self.root.title("Hourly Report Photos")
         self.root.geometry("300x200")
         self.root.resizable(width=False, height=False)
         self.root.configure(background="white")
         self.badge = tk.IntVar()
-        self.newWindow = tk.BooleanVar()
+        self.currentWindow = tk.BooleanVar()
         self.headless = tk.BooleanVar()
         self.output_text = tk.StringVar()
         self.output_text.set(value="")
-        
+        self.debug_port = 9222
         try:
             icon_path = 'Resources/Problem.ico'
             self.root.iconbitmap(icon_path)
         except tk.TclError:
             None
-        self.create_widgets(self.badge, self.newWindow, self.headless, self.output_text)
+        self.create_widgets(self.badge, self.currentWindow, self.headless, self.output_text)
 
     def create_widgets(self, badge, nwWindow, bool_head, output_text):
         label = tk.Label(self.root, text="Badge Number", font=("Arial", 10), fg="#333333", justify="center", background="white")
@@ -53,10 +53,11 @@ class reporterApp:
         check_button = tk.Checkbutton(self.root, text="Hide Browser Window?", font=("Arial", 10), fg="#333333", variable=bool_head, anchor='w', background="white")
         check_button.place(x=10, y=20, width=160, height=25)
 
-        newWindow_chkButton = tk.Checkbutton(self.root, text='New Window?', font=('Arial', 10), fg='#333333', variable=nwWindow, anchor='w', background='white')
-        newWindow_chkButton.place(x=10, y=50, width=130, height=25)
+        currentWindow_chkButton = tk.Checkbutton(self.root, text='Use Current Window?', font=('Arial', 10), fg='#333333', variable=nwWindow, anchor='w', background='white')
+        currentWindow_chkButton.place(x=10, y=50, width=150, height=25)
+        currentWindow_chkButton.select()
         # Button
-        button = tk.Button(self.root, text="Resolve Andons", bg="#4CAF50", font=("Arial", 10, "bold"), fg="white", command=self.gather)
+        button = tk.Button(self.root, text="Gather Photos", bg="#4CAF50", font=("Arial", 10, "bold"), fg="white", command=self.gather)
         button.place(x=90, y=135, width=120, height=30)
         
         # Label
@@ -68,9 +69,10 @@ class reporterApp:
         try:
             badge_value = str(self.badge.get())
             boolean = self.headless.get()
+            crwindow = self.currentWindow.get()
             if badge_value:
                 self.root.update()
-                self.main(boolean)
+                self.first_chrome_window(boolean)
             else:
                 self.output_text.set("Enter Valid Badge/Count entry")
                 self.root.update()
@@ -107,31 +109,49 @@ class reporterApp:
                     logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
                 else:
                     logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
-    def main(self, head):
+    
+    def launch_chrome_with_remote_debugging(self, port):
+        import subprocess
+        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        subprocess.Popen([chrome_path, f"--remote-debugging-port={port}"])
+
+
+
+    def show_message_box(self, message):
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+
+        def on_ok_click():
+            root.destroy()
+            self.main()
+        messagebox.showinfo("Message", message)
+        root.attributes('-topmost', True)
+        root.after(100, on_ok_click)
+        root.mainloop()
+    
+    def first_chrome_window(self, head):
         self.install_module('selenium')
+        self.launch_chrome_with_remote_debugging(self.debug_port)
+        self.show_message_box("Log into Midway, click OK when done")
+    def main(self):
         from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options as ChromeOptions
         from selenium.common.exceptions import NoSuchElementException
         from selenium.webdriver.common.action_chains import ActionChains
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
         import io
         from PIL import Image
-
         optionals = ChromeOptions()
         optionals.add_argument('--log-level=3')
         optionals.add_argument('--force-device-scale-factor=0.7')
         optionals.add_argument('--disable-blink-features=AutomationControlled')
         optionals.add_argument('--disable-notifications')
-
-        if head:
-            optionals.add_argument('--headless')
-
+        optionals.add_experimental_option("debuggerAddress", f"127.0.0.1:{self.debug_port}")
         driver = webdriver.Chrome(options=optionals)
         driver.implicitly_wait(5)
         pngCount = 0
         offset = 200
         actions = ActionChains(driver)
-        
-
         for site, xpath in websites.items():
             driver.maximize_window()
             self.navigate_to_website(driver, site)
