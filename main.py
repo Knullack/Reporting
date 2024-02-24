@@ -1,174 +1,74 @@
-import importlib
-import subprocess
-import tkinter as tk
-from tkinter.constants import *
 import sys
-from os.path import join, dirname
-import logging
-import base64
-
-logging.basicConfig(level=logging.INFO)
-
-ANDON_SITE = "http://fc-andons-na.corp.amazon.com/HDC3?category=Pick&type=No+Scannable+Barcode"
-LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-
-#code has launcher but needs a function that user can add website and html element that needs to be seen for program to screenshot it
-websites = {
-    'https://www.psu.edu': '/html/body/div/section[5]/div/div',
-    'https://www.reddit.com': "/html/body/shreddit-app/div/div[1]/div[2]/main/dsa-transparency-modal-provider/shreddit-feed/article[1]",
-    'https://www.kaggle.com':'/html/body/main/div[1]/div/div[5]/div[2]/div/div/section[3]/div[2]/div[3]'
-    #'https://fcmenu.iad.regionalized.corp.amazon.com/HDC3/entry/200'
-}
-
-class reporterApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Hourly Report Photos")
-        self.root.geometry("300x200")
-        self.root.resizable(width=False, height=False)
-        self.root.configure(background="white")
-        self.badge = tk.IntVar()
-        self.currentWindow = tk.BooleanVar()
-        self.headless = tk.BooleanVar()
-        self.output_text = tk.StringVar()
-        self.output_text.set(value="")
-        self.debug_port = 9222
-        try:
-            icon_path = 'Resources/Problem.ico'
-            self.root.iconbitmap(icon_path)
-        except tk.TclError:
-            None
-        self.create_widgets(self.badge, self.currentWindow, self.headless, self.output_text)
-
-    def create_widgets(self, badge, nwWindow, bool_head, output_text):
-        label = tk.Label(self.root, text="Badge Number", font=("Arial", 10), fg="#333333", justify="center", background="white")
-        label.place(x=10, y=80, width=100, height=30)
-
-        entry_Badge = tk.Entry(self.root, borderwidth="2px", font=("Arial", 10), fg="#333333", justify="center", textvariable=badge)
-        entry_Badge.delete(first=0)
-        entry_Badge.place(x=115, y=80, width=100, height=30)
-        entry_Badge.focus()
-
-        # Checkbutton
-        check_button = tk.Checkbutton(self.root, text="Hide Browser Window?", font=("Arial", 10), fg="#333333", variable=bool_head, anchor='w', background="white")
-        check_button.place(x=10, y=20, width=160, height=25)
-
-        currentWindow_chkButton = tk.Checkbutton(self.root, text='Use Current Window?', font=('Arial', 10), fg='#333333', variable=nwWindow, anchor='w', background='white')
-        currentWindow_chkButton.place(x=10, y=50, width=150, height=25)
-        currentWindow_chkButton.select()
-        # Button
-        button = tk.Button(self.root, text="Gather Photos", bg="#4CAF50", font=("Arial", 10, "bold"), fg="white", command=self.gather)
-        button.place(x=90, y=135, width=120, height=30)
-        
-        # Label
-        output = tk.Label(self.root, textvariable=output_text, font=("Arial", 10), fg="#333333", justify="center", background="white", anchor='w')
-        output.place(x=60, y=170, width=300, height=20)
-
-    def gather(self):
-        from selenium.common.exceptions import NoSuchElementException
-        try:
-            badge_value = str(self.badge.get())
-            boolean = self.headless.get()
-            crwindow = self.currentWindow.get()
-            if badge_value:
-                self.root.update()
-                self.first_chrome_window(boolean)
-            else:
-                self.output_text.set("Enter Valid Badge/Count entry")
-                self.root.update()
-        except tk.TclError:
-            self.output_text.set("Enter Valid Badge/Count entry")
-            self.root.update()
-        except NoSuchElementException as e:
-            print(e)
-        except Exception as e:
-            print(e)
-    
-    def install_module(self, module_name):
-        try:
-            importlib.import_module(module_name)
-        except ModuleNotFoundError:
-            logging.info(f"{module_name} not found. Installing it now...")
-            try:
-                subprocess.run([sys.executable, '-m', 'pip',
-                            'install', module_name], check=True)
-            except subprocess.CalledProcessError as e:
-                logging.error(f"Error installing {module_name}: {e}")
-                sys.exit(1)
-
-    def navigate_to_website(self, driver, url, max_attempts=5):
-        from selenium.common.exceptions import WebDriverException
-        exception_count = 0
-        while exception_count < max_attempts:
-            try:
-                driver.get(url)
-                return
-            except WebDriverException as se:
-                exception_count += 1
-                if "ERR_NAME_NOT_RESOLVED" in se.msg:
-                    logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
-                else:
-                    logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
-    
-    def launch_chrome_with_remote_debugging(self, port):
-        import subprocess
-        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-        subprocess.Popen([chrome_path, f"--remote-debugging-port={port}"])
-
-
-
-    def show_message_box(self, message):
-        from tkinter import messagebox
-        root = tk.Tk()
-        root.withdraw()
-
-        def on_ok_click():
-            root.destroy()
-            self.main()
-        messagebox.showinfo("Message", message)
-        root.attributes('-topmost', True)
-        root.after(100, on_ok_click)
-        root.mainloop()
-    
-    def first_chrome_window(self, head):
-        self.install_module('selenium')
-        self.launch_chrome_with_remote_debugging(self.debug_port)
-        self.show_message_box("Log into Midway, click OK when done")
-    def main(self):
-        from selenium import webdriver
-        from selenium.common.exceptions import NoSuchElementException
-        from selenium.webdriver.common.action_chains import ActionChains
-        from selenium.webdriver.chrome.options import Options as ChromeOptions
-        import io
-        from PIL import Image
-        optionals = ChromeOptions()
-        optionals.add_argument('--log-level=3')
-        optionals.add_argument('--force-device-scale-factor=0.7')
-        optionals.add_argument('--disable-blink-features=AutomationControlled')
-        optionals.add_argument('--disable-notifications')
-        optionals.add_experimental_option("debuggerAddress", f"127.0.0.1:{self.debug_port}")
-        driver = webdriver.Chrome(options=optionals)
-        driver.implicitly_wait(5)
-        pngCount = 0
-        offset = 200
-        actions = ActionChains(driver)
-        for site, xpath in websites.items():
-            driver.maximize_window()
-            self.navigate_to_website(driver, site)
-            try:
-                actions.move_to_element(driver.find_element('xpath',xpath)).perform()
-                # actions.scroll_by_amount(0,offset).perform()
-                # driver.execute_script(f'window.scrollBy(0,{offset});')
-                image_binary  = driver.find_element('xpath', xpath).screenshot_as_png
-                img = Image.open(io.BytesIO(image_binary))
-                pngCount += 1
-                img.save(f"image{pngCount}.png")
-            except NoSuchElementException as e:
-                logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {e}")
-
-        driver.quit()
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Chrome_Session import chromeSession
+from time import time
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = reporterApp(root)
-    root.mainloop()
+    start_time = time()
+    session = chromeSession(12730876)
+    session.start()
+    websites = {
+        "https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/overview": {
+            "inbound": {
+                "1-2": '/html/body/div[1]/div[2]/div[2]/div[2]/a/span/div/div[3]',
+                "2-3": '/html/body/div[1]/div[2]/div[2]/div[2]/a/span/div/div[4]',
+                "3-5": '/html/body/div[1]/div[2]/div[2]/div[2]/a/span/div/div[5]',
+                ">5": '/html/body/div[1]/div[2]/div[2]/div[2]/a/span/div/div[6]'
+            },
+            "outbound": {
+                "1-2": '/html/body/div[1]/div[2]/div[2]/div[4]/a/span/div/div[3]',
+                "2-3": '/html/body/div[1]/div[2]/div[2]/div[4]/a/span/div/div[4]',
+                "3-5": '/html/body/div[1]/div[2]/div[2]/div[4]/a/span/div/div[5]',
+                ">5": '/html/body/div[1]/div[2]/div[2]/div[4]/a/span/div/div[6]'
+            }
+        },
+        "https://picking-console.na.picking.aft.a2z.com/fc/HDC3/process-paths/?tableFilters=%7B%22tokens%22%3A%5B%7B%22propertyKey%22%3A%22ProcessPathName%22%2C%22propertyLabel%22%3A%22Process%20Path%22%2C%22value%22%3A%22PPTransDELETE%22%2C%22label%22%3A%22PPTransDELETE%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22ProcessPathName%22%2C%22propertyLabel%22%3A%22Process%20Path%22%2C%22value%22%3A%22PPRejectRemovals%22%2C%22label%22%3A%22PPRejectRemovals%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22PickProcess%22%2C%22propertyLabel%22%3A%22Pick%20Process%22%2C%22value%22%3A%22MDPRejectPicking%22%2C%22label%22%3A%22MDPRejectPicking%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22PickProcess%22%2C%22propertyLabel%22%3A%22Pick%20Process%22%2C%22value%22%3A%22HOVRejectPicking%22%2C%22label%22%3A%22HOVRejectPicking%22%2C%22negated%22%3Afalse%7D%5D%2C%22operation%22%3A%22or%22%7D": {
+            "units": {
+                "PPHOVReject": '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]/table/tbody/tr[1]/td[3]/span/a',
+                "PPMDPReject": '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]/table/tbody/tr[2]/td[3]/span/a',
+                "PPTransDELETE": '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]/table/tbody/tr[3]/td[3]/span/a'
+            },
+            "active-pickers": {
+                "PPMDPReject" : '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]/table/tbody/tr[2]/td[5]/span/span',
+                "PPTransDELETE" : '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]/table/tbody/tr[3]/td[5]/span/span'
+            }
+        },
+        "https://fc-quality-dashboard-iad.aka.amazon.com/management/count_density?work_type=CYCLE_COUNT": {
+            "cycle count": {
+                "all": '/html/body/div/table/tbody/tr[10]/td[3]/a'
+            }
+        },
+        "https://fc-quality-dashboard-iad.aka.amazon.com/management/count_density?work_type=SIMPLE_BIN_COUNT": {
+            "simple bin count" : {
+                "all": '/html/body/div/table/tbody/tr[3]/td[3]/a'
+            }
+        }
+        # need pick & CC andon csv downloader
+    }
+    
+    all_values = {}
+    
+    for website, categories in websites.items():
+        website_values = {}
+        for category, xpaths in categories.items():
+            category_values = {}
+            for subcategory, xpath in xpaths.items():
+                value = session.get_text(website, xpath)
+                category_values[subcategory] = value
+            website_values[category] = category_values
+        all_values[website] = website_values
+
+    session.close()
+
+
+    elapsed_time = time() - start_time
+    if elapsed_time < 60:
+        print(f"Run time: {elapsed_time:.2f} seconds")
+    elif elapsed_time >= 60:
+        minutes = int(elapsed_time // 60)
+        seconds = int(elapsed_time % 60)
+        print(f"{minutes}m:{seconds}s")
+
+        
+    print("All Values:", all_values)
