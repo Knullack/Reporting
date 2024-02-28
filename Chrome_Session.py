@@ -2,7 +2,13 @@ import importlib
 import logging
 import subprocess
 import sys
+import os
+import glob
+import time
+import pandas as pd
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
@@ -16,13 +22,35 @@ SITE = "https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/overview"
 LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
 
 class chromeSession():
-    """(1) Start a session\n
-    (2) Call get_text()
-    """
     def __init__(self, badge: int):
         """Badge for FC Menu login"""
         self.driver = None
         self.badge = str(badge)
+        self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
+
+    def delete_cookie_by_name(self, cookie_name):
+        """Deletes a cookie by name in the Chrome settings."""
+        # Open Chrome settings
+        self.driver.get("chrome://settings/content/all")
+
+        # Wait for the cookies to load
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', "/html/body/settings-ui//div[2]/settings-main//settings-basic-page//div[1]/settings-section[5]/settings-privacy-page//settings-animated-pages/settings-subpage/all-sites//div[6]/iron-list/site-entry[1]//div/div/div[2]/cr-icon-button")))
+
+        # Find all cookies
+        cookies = self.driver.find_element('xpath', "/html/body/settings-ui//div[2]/settings-main//settings-basic-page//div[1]/settings-section[5]/settings-privacy-page//settings-animated-pages/settings-subpage/all-sites//div[6]/iron-list/site-entry[1]//div/div/div[2]/cr-icon-button")
+
+        # Iterate over cookies to find the one with the specified name
+        for cookie in cookies:
+            # Check if the cookie name matches
+            if cookie.find_element(By.CSS_SELECTOR, ".settings-cookie-name").text == cookie_name:
+                # Click on the corresponding trash button
+                trash_button = cookie.find_element(By.CSS_SELECTOR, ".settings-cookie-remove")
+                trash_button.click()
+
+                # Find and click the "Delete site data and permissions" link
+                delete_link = self.driver.find_element(By.XPATH, '//button[@title="Delete site data and permissions for a2z.com"]')
+                delete_link.click()
+                break
 
     def install_module(self, module_name: str) -> None:
         try:
@@ -59,31 +87,47 @@ class chromeSession():
                 exception_count += 1
                 # logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
 
+    def launch_chrome_with_remote_debugging(self, port):
+        import subprocess
+        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        subprocess.Popen([chrome_path, f"--remote-debugging-port={port}"])
+
     def start(self) -> object:
         """Starts a Chrome browser session"""
         self.install_module('selenium')
-        
+        self.port = 9200
+        self.launch_chrome_with_remote_debugging(self.port)
         optionals = ChromeOptions()
         optionals.add_argument('--log-level=3')
         optionals.add_argument('--force-device-scale-factor=0.7')
         optionals.add_argument('--disable-blink-features=AutomationControlled')
         optionals.add_argument('--disable-notifications')
-        optionals.add_experimental_option('excludeSwitches', ['enable-automation'])
-        optionals.add_experimental_option('useAutomationExtension', False)
         optionals.add_argument('--disable-infobars')
+        optionals.add_argument('--disable-extensions')
+        optionals.add_argument('--disable-dev-shm-usage')
+        optionals.add_argument('--disable-gpu')
+        optionals.add_argument('--disable-browser-side-navigation')
+        optionals.add_argument('--disable-features=VizDisplayCompositor')
+        optionals.add_argument('--no-sandbox')
         optionals.add_argument('--disable-logging')
+        optionals.add_experimental_option("debuggerAddress", f"127.0.0.1:{self.port}")
 
         self.driver = Chrome(options=optionals)
         self.driver.implicitly_wait(10)
+        # self.delete_cookie_by_name('a2z.com')
+        self.FCMenu_login(self.driver, self.badge)
+        
+        self.driver.refresh()
     
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
         actions = ActionChains(self.driver)
         try:
-            self.FCMenu_login(self.driver, self.badge)
-            self.navigate(self.driver, site, 2)
-            actions.move_to_element(By.XPATH, xpath)
+            if self.driver.current_url != site:
+                self.navigate(self.driver, site, 2)
+
             element = self.driver.find_element(By.XPATH, xpath)
+            actions.move_to_element(element).perform()
             return element.text
         except WebDriverException as WDE:
             if "ERR_NAME_NOT_RESOLVED" in WDE.msg:
@@ -91,11 +135,63 @@ class chromeSession():
             else:
                 logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {WDE}")
             return None
+    
+    def download_csv(self, url: str, button_xpath: str, download_dir: str):
+        # Navigate to the webpage
+        self.driver.get(url)
         
-    def close(self) -> None:
-        """Quit the Chrome driver"""
-        if self.driver:
-             self.driver.quit()
+        # Wait for the download button to become clickable
+        download_button = WebDriverWait(self.driver, 30).until(
+            EC.element_to_be_clickable((By.XPATH, button_xpath))
+        )
+
+        # Click the download button
+        download_button.click()
+
+        # Wait for the file to download (you can adjust the sleep time as needed)
+        time.sleep(5)  # Assuming the file downloads in 5 seconds
+
+        # Search for the latest downloaded CSV file with the matching prefix
+        csv_files = []
+        for prefix in self.file_prefixes:
+            csv_files.extend(glob.glob(os.path.join(download_dir, f"{prefix}*.csv")))
+        print("CSV files found:", csv_files)  # Print the list of CSV files
+        if not csv_files:
+            print("No CSV files found in the download directory.")
+            return None
+
+        latest_file = max(csv_files, key=os.path.getmtime)
+
+        # Use Pandas to open and read the CSV file
+        if os.path.exists(latest_file):
+            df = pd.read_csv(latest_file)
+            # Count the number of rows excluding the header
+            num_rows = len(df) - 1  # Excluding the header row
+            return num_rows
         else:
-            return logging.error('No session active')
-            
+            print("CSV file not found in the download directory.")
+
+    def close(self) -> None:
+        """Quit the Chrome driver & terminate processes"""
+        if self.driver:
+            self.driver.quit()
+            self.close_chrome_processes()
+        else:
+            return logging.INFO('No session active')
+    
+    
+
+    def close_chrome_processes(self):
+        try:
+            # Find all running processes with name chrome.exe
+            chrome_processes = os.popen('tasklist /FI "IMAGENAME eq chrome.exe"').read()
+
+            # Check if any chrome.exe processes are running
+            if "chrome.exe" in chrome_processes:
+                # Redirect output to os.devnull to suppress termination messages
+                os.system('taskkill /F /IM chrome.exe > nul 2>&1')
+                print("Chrome processes terminated successfully.")
+            else:
+                print("No Chrome processes found.")
+        except Exception as e:
+            print(f"Error occurred while terminating Chrome processes: {e}")
