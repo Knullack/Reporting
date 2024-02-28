@@ -136,25 +136,23 @@ class chromeSession():
                 logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {WDE}")
             return None
     
-    def download_csv(self, url: str, button_xpath: str, download_dir: str):
-        # Navigate to the webpage
-        self.driver.get(url)
+    def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
+        self.navigate(self.driver, url, 5)
         
         # Wait for the download button to become clickable
         download_button = WebDriverWait(self.driver, 30).until(
             EC.element_to_be_clickable((By.XPATH, button_xpath))
         )
-
-        # Click the download button
         download_button.click()
 
-        # Wait for the file to download (you can adjust the sleep time as needed)
-        time.sleep(5)  # Assuming the file downloads in 5 seconds
+        time.sleep(5)
 
         # Search for the latest downloaded CSV file with the matching prefix
         csv_files = []
-        for prefix in self.file_prefixes:
-            csv_files.extend(glob.glob(os.path.join(download_dir, f"{prefix}*.csv")))
+        if pick_andon:
+            csv_files.extend(glob.glob(os.path.join(download_dir, f"Pick All types*.csv")))
+        else:
+            csv_files.extend(glob.glob(os.path.join(download_dir, f"Bin Item Defects All types*.csv")))
         print("CSV files found:", csv_files)  # Print the list of CSV files
         if not csv_files:
             print("No CSV files found in the download directory.")
@@ -164,9 +162,9 @@ class chromeSession():
 
         # Use Pandas to open and read the CSV file
         if os.path.exists(latest_file):
-            df = pd.read_csv(latest_file)
+            df = pd.read_csv(latest_file, header=0)
             # Count the number of rows excluding the header
-            num_rows = len(df) - 1  # Excluding the header row
+            num_rows = df.shape[0]
             return num_rows
         else:
             print("CSV file not found in the download directory.")
@@ -179,7 +177,24 @@ class chromeSession():
         else:
             return logging.INFO('No session active')
     
-    
+    def SBC_accuracy(self, site: str, download_anchor_xPath: str) -> float:
+        actions = ActionChains(self.driver)
+        self.navigate(self.driver, site, 5)
+
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', "/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a")))
+        time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
+        time_span.click()
+
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[1]/a')))
+        quick = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[1]/a')
+        quick.click()
+
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/div[1]/ul/li[2]/a')))
+        this_week = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/div[1]/ul/li[2]/a')
+        this_week.click()
+
+        csv = self.driver.find_element(By.XPATH, '/html/body/div[2]/div/div/dashboard-grid/ul/li[6]/dashboard-panel/div/visualize/div[2]/div/div/kbn-agg-table-group/table/tbody/tr/td/kbn-agg-table-group/table/tbody/tr/td/kbn-agg-table/paginated-table/paginate/div[2]/div/a')
+        csv.click()
 
     def close_chrome_processes(self):
         try:
