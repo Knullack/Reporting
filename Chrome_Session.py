@@ -121,20 +121,31 @@ class chromeSession():
     
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
+        
         actions = ActionChains(self.driver)
-        try:
-            if self.driver.current_url != site:
-                self.navigate(self.driver, site, 2)
-
-            element = self.driver.find_element(By.XPATH, xpath)
-            actions.move_to_element(element).perform()
-            return element.text
-        except WebDriverException as WDE:
-            if "ERR_NAME_NOT_RESOLVED" in WDE.msg:
-                logging.error("Error: DNS resolution failed.")
-            else:
-                logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {WDE}")
-            return None
+        ERR_not_authorized = None
+        attempt = 0
+        while attempt < 2:
+            try:
+                if self.driver.current_url != site:
+                    self.navigate(self.driver, site, 2)
+                    if site == "https://picking-console.na.picking.aft.a2z.com/fc/HDC3/process-paths/?tableFilters=%7B%22tokens%22%3A%5B%7B%22propertyKey%22%3A%22ProcessPathName%22%2C%22propertyLabel%22%3A%22Process%20Path%22%2C%22value%22%3A%22PPTransDELETE%22%2C%22label%22%3A%22PPTransDELETE%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22ProcessPathName%22%2C%22propertyLabel%22%3A%22Process%20Path%22%2C%22value%22%3A%22PPRejectRemovals%22%2C%22label%22%3A%22PPRejectRemovals%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22PickProcess%22%2C%22propertyLabel%22%3A%22Pick%20Process%22%2C%22value%22%3A%22MDPRejectPicking%22%2C%22label%22%3A%22MDPRejectPicking%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22PickProcess%22%2C%22propertyLabel%22%3A%22Pick%20Process%22%2C%22value%22%3A%22HOVRejectPicking%22%2C%22label%22%3A%22HOVRejectPicking%22%2C%22negated%22%3Afalse%7D%5D%2C%22operation%22%3A%22or%22%7D":
+                        self.driver.implicitly_wait(2)
+                        ERR_not_authorized = self.driver.find_elements(By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span')
+                        self.driver.implicitly_wait(10)
+                if not ERR_not_authorized:
+                    element = self.driver.find_element(By.XPATH, xpath)
+                    actions.move_to_element(element).perform()
+                    return element.text
+                else:
+                    self.driver.execute_script("location.reload();")
+                    attempt += 1
+            except WebDriverException as WDE:
+                if "ERR_NAME_NOT_RESOLVED" in WDE.msg:
+                    logging.error("Error: DNS resolution failed.")
+                else:
+                    logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {WDE}")
+                return None
     
     def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
         self.navigate(self.driver, url, 5)
