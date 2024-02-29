@@ -147,13 +147,11 @@ class chromeSession():
 
         time.sleep(5)
 
-        # Search for the latest downloaded CSV file with the matching prefix
         csv_files = []
         if pick_andon:
             csv_files.extend(glob.glob(os.path.join(download_dir, f"Pick All types*.csv")))
         else:
             csv_files.extend(glob.glob(os.path.join(download_dir, f"Bin Item Defects All types*.csv")))
-        print("CSV files found:", csv_files)  # Print the list of CSV files
         if not csv_files:
             print("No CSV files found in the download directory.")
             return None

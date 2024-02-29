@@ -140,17 +140,16 @@ try:
     print(f"UNITS MDPReject: {unit_MDPReject}")
     print(f"UNITS TransDelete: {unit_TransDELETE}")
 
-    print(f"UNITS HOVReject: {unit_HOVReject}")
-    print(f"UNITS MDPReject: {unit_MDPReject}")
-    print(f"UNITS TransDelete: {unit_TransDELETE}")
-
     print(f"HC MDPReject: {count_MDPReject}")
     print(f"HC TransDelete: {count_TransDELETE}")
 
-    print(f"CC: {CC}")
-    print(f"SBC: {SBC}")
+    print(f"HC CC: {CC}")
+    print(f"HC SBC: {SBC}")
 
     print(f'IQQA Hours: {fclm_hours}')
+
+    print(f"Pick Andons: {pick_andons}")
+    print(f"CC Andons: {CC_andons}")
 
 except TypeError:
     pass
