@@ -1,12 +1,15 @@
-from selenium.webdriver import Chrome, Firefox, Edge
+import datetime
+from openpyxl import Workbook, load_workbook
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Chrome_Session import chromeSession
 from time import time
 from datetime import datetime
+import pandas as pd
 
 if __name__ == "__main__":
+    download_dir = r"C:\Users\nuneadon.ANT\Downloads"
     start_time = time()
     month = datetime.now().month
     day = datetime.now().day
@@ -41,26 +44,30 @@ if __name__ == "__main__":
         },
         "https://fc-quality-dashboard-iad.aka.amazon.com/management/count_density?work_type=CYCLE_COUNT": {
             "cycle-count": {
-                "all": '/html/body/div/table/tbody/tr[10]/td[3]/a'
+                "all": '/html/body/div/table/tbody/tr[11]/td[3]/a'
             }
         },
         "https://fc-quality-dashboard-iad.aka.amazon.com/management/count_density?work_type=SIMPLE_BIN_COUNT": {
             "simple-bin-count" : {
-                "all": '/html/body/div/table/tbody/tr[3]/td[3]/a'
+                "all": '/html/body/div/table/tbody/tr[5]/td[3]/a'
             }
         },
         f"https://fclm-portal.amazon.com/reports/functionRollup?reportFormat=HTML&warehouseId=HDC3&processId=1003030&startDateWeek={year}%2F{month}%2F{day}&maxIntradayDays=1&spanType=Intraday&startDateIntraday={year}%2F{month}%2F{day}&startHourIntraday=7&startMinuteIntraday=0&endDateIntraday={year}%2F{month}%2F{day}&endHourIntraday=18&endMinuteIntraday=0": {
             "total-paid-hours" : {
-                "total": '/html/body/div[4]/table[2]/tfoot/tr[1]/td[1]'
+                "total": '/html/body/div[3]/table[2]/tfoot/tr[1]/td[1]'
             }
         }
     }
     accuracy_dashboard = 'https://fc-quality-dashboard-iad.aka.amazon.com/reporting/dashboards/count_accuracy'
+    completion_dashboard = 'https://fc-quality-dashboard-iad.aka.amazon.com/reporting/dashboards/count_completion'
     andons_pick = 'http://fc-andons-na.corp.amazon.com/HDC3?category=Pick&type=All+types'
     andons_CC = 'http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type=All+types'
     downloads = {
         accuracy_dashboard : {
             'csv': '/html/body/div[2]/div/div/dashboard-grid/ul/li[6]/dashboard-panel/div/visualize/div[2]/div/div/kbn-agg-table-group/table/tbody/tr/td/kbn-agg-table-group/table/tbody/tr/td/kbn-agg-table/paginated-table/paginate/div[2]/div/a'
+        },
+        completion_dashboard : {
+            'csv': '/html/body/div[2]/div/div/dashboard-grid/ul/li[11]/dashboard-panel/div/doc-table/div[2]/paginate/div/a'
         },
         andons_pick : {
             'csv': '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[1]/span/div/div[2]/awsui-button[1]/button'
@@ -70,10 +77,15 @@ if __name__ == "__main__":
         }
     }
 
+    pick_andons = None
+    CC_andons = None
+    SBC_accuracy = None
+    count_completion = None
+    SBC_accuracy = session.SBC_accuracy(accuracy_dashboard, downloads[accuracy_dashboard]['csv'], download_dir)
+    count_completion = session.CC_Completion(completion_dashboard, downloads[completion_dashboard]['csv'], download_dir)
+    pick_andons = session.download_csv(andons_pick, downloads[andons_pick]['csv'], download_dir, True)
+    CC_andons = session.download_csv(andons_CC, downloads[andons_CC]['csv'], download_dir)
     
-    pick_andons = session.download_csv(andons_pick, downloads[andons_pick]['csv'], r"C:\Users\nuneadon.ANT\Downloads", True)
-    CC_andons = session.download_csv(andons_CC, downloads[andons_CC]['csv'], r"C:\Users\nuneadon.ANT\Downloads")
-    # SBC_accuracy = session.download_csv(accuracy_dashboard, downloads[accuracy_dashboard]['csv'], r"C:\Users\nuneadon.ANT\Downloads")
 
     for website, categories in websites.items():
         for category, xpaths in categories.items():
@@ -100,56 +112,153 @@ if __name__ == "__main__":
     FCQUALITY_SBC = list(websites.keys())[3]
     FCLM = list(websites.keys())[4]
 
-
-# for website, categories in websites.items():
-#     for category, subcategories in categories.items():
-#         for subcategory, value in subcategories.items():
-#             print(f"{category} - {subcategory}: {value}")
-
 try:
-
+    # Inbound metrics
     inbound_1_3 = int(websites[IOL]['inbound']['1-2']) + int(websites[IOL]['inbound']['2-3'])
     inbound_3_5 = int(websites[IOL]['inbound']['3-5'])
     inbound_gt_5 = int(websites[IOL]['inbound']['>5'])
-    #
-    outbound_1_3 = int(websites[IOL]['outbound']['1-2']) + int(websites[IOL]['outbound']['2-3'])
-    outbound_3_5 = int(websites[IOL]['outbound']['3-5'])
-    outbound_gt_5 = int(websites[IOL]['outbound']['>5'])
-
-    unit_HOVReject = int(websites[PICK_CONSOLE]['units']['PPHOVReject'])
-    unit_MDPReject = int(websites[PICK_CONSOLE]['units']['PPMDPReject'])
-    unit_TransDELETE = int(websites[PICK_CONSOLE]['units']['PPTransDELETE'])
-
-    count_MDPReject = int(websites[PICK_CONSOLE]['active-pickers']['PPMDPReject'])
-    count_TransDELETE = int(websites[PICK_CONSOLE]['active-pickers']['PPTransDELETE'])
-
-    CC = int(websites[FCQUALITY_CC]['cycle-count']['all'])
-    SBC = int(websites[FCQUALITY_SBC]['simple-bin-count']['all'])
-
-    fclm_hours = float(websites[FCLM]['total-paid-hours']['total'])
-
+    
     print(f"IB (1-3): {inbound_1_3}")
     print(f"IB (3-5): {inbound_3_5}")
     print(f"IB (>5): {inbound_gt_5}")
 
+except TypeError as e:
+    print(f"Error: Failed to process inbound metrics. {e}")
+
+try:
+    # Outbound metrics
+    outbound_1_3 = int(websites[IOL]['outbound']['1-2']) + int(websites[IOL]['outbound']['2-3'])
+    outbound_3_5 = int(websites[IOL]['outbound']['3-5'])
+    outbound_gt_5 = int(websites[IOL]['outbound']['>5'])
+    
     print(f"OB (1-3): {outbound_1_3}")
     print(f"OB (3-5): {outbound_3_5}")
     print(f"OB (>5): {outbound_gt_5}")
 
+except TypeError as e:
+    print(f"Error: Failed to process outbound metrics. {e}")
+
+try:
+    # Unit metrics
+    unit_HOVReject = int(websites[PICK_CONSOLE]['units']['PPHOVReject'])
+    unit_MDPReject = int(websites[PICK_CONSOLE]['units']['PPMDPReject'])
+    unit_TransDELETE = int(websites[PICK_CONSOLE]['units']['PPTransDELETE'])
+    
     print(f"UNITS HOVReject: {unit_HOVReject}")
     print(f"UNITS MDPReject: {unit_MDPReject}")
     print(f"UNITS TransDelete: {unit_TransDELETE}")
 
+except TypeError as e:
+    print(f"Error: Failed to process unit metrics. {e}")
+
+try:
+    # Count metrics
+    count_MDPReject = int(websites[PICK_CONSOLE]['active-pickers']['PPMDPReject'])
+    count_TransDELETE = int(websites[PICK_CONSOLE]['active-pickers']['PPTransDELETE'])
+    
     print(f"HC MDPReject: {count_MDPReject}")
     print(f"HC TransDelete: {count_TransDELETE}")
 
+except TypeError as e:
+    print(f"Error: Failed to process count metrics. {e}")
+
+try:
+    # SBC and CC metrics
+    CC = int(websites[FCQUALITY_CC]['cycle-count']['all'])
+    SBC = int(websites[FCQUALITY_SBC]['simple-bin-count']['all'])
+    
     print(f"HC CC: {CC}")
     print(f"HC SBC: {SBC}")
 
+except TypeError as e:
+    print(f"Error: Failed to process SBC and CC metrics. {e}")
+
+try:
+    # FCLM metrics
+    fclm_hours = float(websites[FCLM]['total-paid-hours']['total'])
+    
     print(f'IQQA Hours: {fclm_hours}')
 
-    print(f"Pick Andons: {pick_andons}")
-    print(f"CC Andons: {CC_andons}")
+except TypeError as e:
+    print(f"Error: Failed to process FCLM metrics. {e}")
 
-except TypeError:
-    pass
+print(f"Pick Andons: {pick_andons}")
+print(f"CC Andons: {CC_andons}")
+print(f"SBC Accuracy: {SBC_accuracy}")
+print(f"CC Completion: {count_completion[1]}\nSBC Completion: {count_completion[0]}")
+
+
+
+
+# import pandas as pd
+
+# # Mock data
+# inbound_1_3 = 100
+# inbound_3_5 = 75
+# inbound_gt_5 = 50
+# outbound_1_3 = 80
+# outbound_3_5 = 60
+# outbound_gt_5 = 40
+# unit_HOVReject = 20
+# unit_MDPReject = 15
+# unit_TransDELETE = 10
+# count_MDPReject = 5
+# count_TransDELETE = 8
+# CC = 200
+# SBC = 150
+# fclm_hours = 35.5
+# pick_andons = 25
+# CC_andons = 30
+
+# def get_column():
+#     from datetime import datetime
+#     now = datetime.now()
+#     hour = now.hour
+#     if 9 <= hour < 18:
+#         # Convert hour to Excel column (A=1, B=2, ...)
+#         return chr(ord('C') + hour - 9)
+#     else:
+#         return None  # Return None for hours outside of 9 AM to 5 PM
+
+# def write_to_excel(data, filename):
+#     column = get_column()
+#     if column:
+#         # Create a DataFrame from the data
+#         df = pd.DataFrame(columns=['Data'])
+#         # Create a dictionary to map each piece of data to its row
+#         cell_mapping = {
+#             inbound_1_3: '5',
+#             inbound_3_5: '6',
+#             inbound_gt_5: '7',
+#             outbound_1_3: '10',
+#             outbound_3_5: '11',
+#             outbound_gt_5: '12',
+#             unit_HOVReject: '25',
+#             unit_MDPReject: '24',
+#             unit_TransDELETE: '26',
+#             count_MDPReject: '22',
+#             count_TransDELETE: '23',
+#             CC: '14',
+#             SBC: '13',
+#             # fclm_hours: '4',
+#             pick_andons: '27',
+#             CC_andons: '19'
+#         }
+#         # Write data to cells based on the cell mapping
+#         for value, row in cell_mapping.items():
+#             df.at[row, column] = value
+#         # Write the DataFrame to the specified Excel file
+#         df.to_excel(filename, index=False)
+#         print(f"Data written to {filename}.")
+#     else:
+#         print("Data could not be written. Time is outside of 9 AM to 4 PM.")
+
+# # Specify the filename to write to
+# filename = r"C:\Users\nuneadon.ANT\Desktop\Reporting_Sheet - Copy.xlsx"
+
+# data = [inbound_1_3, inbound_3_5, inbound_gt_5, outbound_1_3, outbound_3_5, outbound_gt_5, 
+#         unit_HOVReject, unit_MDPReject, unit_TransDELETE, count_MDPReject, count_TransDELETE, 
+#         CC, SBC, fclm_hours, pick_andons, CC_andons]
+# filename = r"C:\Users\nuneadon.ANT\Desktop\Reporting_Sheet - Copy.xlsx"
+# write_to_excel(data, filename)
+

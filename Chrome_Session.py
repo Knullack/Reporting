@@ -3,10 +3,14 @@ import logging
 import subprocess
 import sys
 import os
+import csv
+import statistics
+import time
 import glob
 import time
 import pandas as pd
-from selenium.common.exceptions import WebDriverException
+from datetime import datetime, timedelta
+from selenium.common.exceptions import WebDriverException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -115,25 +119,41 @@ class chromeSession():
         self.driver = Chrome(options=optionals)
         self.driver.implicitly_wait(10)
         # self.delete_cookie_by_name('a2z.com')
+
+        # to remove the Session Restore popup
+        actions = ActionChains(self.driver)
+        actions.key_down(Keys.ESCAPE)
+        actions.key_up(Keys.ESCAPE)
+        actions.perform()
+        
         self.FCMenu_login(self.driver, self.badge)
         
-        self.driver.refresh()
+        # self.driver.refresh()
     
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
         
         actions = ActionChains(self.driver)
-        ERR_not_authorized = None
+        siteERR = None
         attempt = 0
         while attempt < 2:
             try:
+                self.driver.execute_script('location.reload();') if attempt == 1 else None
                 if self.driver.current_url != site:
                     self.navigate(self.driver, site, 2)
-                    if site == "https://picking-console.na.picking.aft.a2z.com/fc/HDC3/process-paths/?tableFilters=%7B%22tokens%22%3A%5B%7B%22propertyKey%22%3A%22ProcessPathName%22%2C%22propertyLabel%22%3A%22Process%20Path%22%2C%22value%22%3A%22PPTransDELETE%22%2C%22label%22%3A%22PPTransDELETE%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22ProcessPathName%22%2C%22propertyLabel%22%3A%22Process%20Path%22%2C%22value%22%3A%22PPRejectRemovals%22%2C%22label%22%3A%22PPRejectRemovals%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22PickProcess%22%2C%22propertyLabel%22%3A%22Pick%20Process%22%2C%22value%22%3A%22MDPRejectPicking%22%2C%22label%22%3A%22MDPRejectPicking%22%2C%22negated%22%3Afalse%7D%2C%7B%22propertyKey%22%3A%22PickProcess%22%2C%22propertyLabel%22%3A%22Pick%20Process%22%2C%22value%22%3A%22HOVRejectPicking%22%2C%22label%22%3A%22HOVRejectPicking%22%2C%22negated%22%3Afalse%7D%5D%2C%22operation%22%3A%22or%22%7D":
-                        self.driver.implicitly_wait(2)
-                        ERR_not_authorized = self.driver.find_elements(By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span')
-                        self.driver.implicitly_wait(10)
-                if not ERR_not_authorized:
+                    if "picking-console" in site:
+                        try:
+                            siteERR = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span')))
+                            siteERR = True
+                        except TimeoutException:
+                            siteERR = False
+                    if "fc-andons" in site:
+                        try:
+                            siteERR = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div')))
+                            siteERR = True
+                        except TimeoutException:
+                            siteERR = False
+                if not siteERR:
                     element = self.driver.find_element(By.XPATH, xpath)
                     actions.move_to_element(element).perform()
                     return element.text
@@ -141,11 +161,7 @@ class chromeSession():
                     self.driver.execute_script("location.reload();")
                     attempt += 1
             except WebDriverException as WDE:
-                if "ERR_NAME_NOT_RESOLVED" in WDE.msg:
-                    logging.error("Error: DNS resolution failed.")
-                else:
-                    logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {WDE}")
-                return None
+                return f"Element not found for site '{site}' with XPath '{xpath}': {WDE}"
     
     def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
         self.navigate(self.driver, url, 5)
@@ -186,24 +202,161 @@ class chromeSession():
         else:
             return logging.INFO('No session active')
     
-    def SBC_accuracy(self, site: str, download_anchor_xPath: str) -> float:
+    def SBC_accuracy(self, site: str, download_anchor_xPath: str, download_dir: str) -> float:
+        # navigation
         actions = ActionChains(self.driver)
         self.navigate(self.driver, site, 5)
+        iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/iframe")))
+        self.driver.switch_to.frame(iframe)
+        tFrom, tTo = self.timeline()
 
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', "/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a")))
+        # actions
+        WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a")))
         time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
         time_span.click()
+        WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a")))
+        absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
+        absolute.click()
 
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[1]/a')))
-        quick = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[1]/a')
-        quick.click()
+        eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
+        eleFrom.clear()
+        eleFrom.send_keys(tFrom)
 
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(('xpath', '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/div[1]/ul/li[2]/a')))
-        this_week = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/div[1]/ul/li[2]/a')
-        this_week.click()
+        eleTo = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input')
+        eleTo.clear()
+        eleTo.send_keys(tTo)
+        btn_GO = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button')
+        btn_GO.click()
+        # download
+        try:
+            csv = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, download_anchor_xPath)))
+            csv.click()
+            time.sleep(3)
+            WebDriverWait(self.driver, 15).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+            csv_files = []
+            csv_files.extend(glob.glob(os.path.join(download_dir, f"table_*.csv")))
+            if not csv_files:
+                print("No CSV files found in the download directory.")
+                return None
 
-        csv = self.driver.find_element(By.XPATH, '/html/body/div[2]/div/div/dashboard-grid/ul/li[6]/dashboard-panel/div/visualize/div[2]/div/div/kbn-agg-table-group/table/tbody/tr/td/kbn-agg-table-group/table/tbody/tr/td/kbn-agg-table/paginated-table/paginate/div[2]/div/a')
-        csv.click()
+            latest_file = max(csv_files, key=os.path.getmtime)
+
+            # Use Pandas to open and read the CSV file
+            if os.path.exists(latest_file):
+                return self.calculate_average(latest_file, 5, 1)
+            else:
+                print("CSV file not found in the download directory.")
+
+
+        except TimeoutException:
+            return "SBC_Accuracy: Element not found"
+    
+    def CC_Completion(self, site: str, download_anchor_xPath: str, download_dir: str) -> int:
+        attempt = 0
+        while attempt < 2:
+            ERR_OOPS = False
+            self.driver.execute_script('location.reload();') if attempt == 1 else self.navigate(self.driver, site, 5)
+            # navigation
+            actions = ActionChains(self.driver)
+            # self.navigate(self.driver, site, 5)
+            iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/iframe")))
+            self.driver.switch_to.frame(iframe)
+            tFrom, tTo = self.timeline()
+            try: 
+                WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/nav')))
+                # WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/center/h1')))
+                ERR_OOPS = True
+            except TimeoutException:
+                ERR_OOPS = False
+            
+            if not ERR_OOPS:
+                # actions
+                WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')))
+                time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
+                time_span.click()
+                
+                WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')))
+                absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
+                absolute.click()
+
+                eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
+                eleFrom.clear()
+                eleFrom.send_keys(tFrom)
+
+                eleTo = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input')
+                eleTo.clear()
+                eleTo.send_keys(tTo)
+
+                btn_GO1 = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button')
+                btn_GO1.click()
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                # btn_GO2 = self.driver.find_element(By.XPATH, '/html/body/div[2]/div/div/navbar/form/div/div/button')
+                # btn_GO2.click()
+                # download
+                try:
+                    csv = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, download_anchor_xPath)))
+                    csv.click()
+
+                    btn_ok = self.driver.find_element(By.XPATH, '/html/body/div[4]/div/div/div[2]/button[2]')
+                    btn_ok.click()
+                    start_time = time.time()
+                    WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                    # can take quite a few seconds to download file (40s max)
+                    WebDriverWait(self.driver, 40).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                    csv_files = []
+                    csv_files.extend(glob.glob(os.path.join(download_dir, f"export_*.csv")))
+                    if not csv_files:
+                        print("No CSV files found in the download directory.")
+                        return None
+
+                    latest_file = max(csv_files, key=os.path.getmtime)
+
+                    # Use Pandas to open and read the CSV file
+                    if os.path.exists(latest_file):
+                        elapsed_time = time.time() - start_time
+                        print(f"time to download count_completion: {elapsed_time}")
+                        return self.calculate_counts(latest_file)
+                        
+                except TimeoutException:
+                    return "CC_Completion: Element not found"
+            else:
+                attempt += 1
+
+
+    def timeline(self) -> tuple:
+        """returns current week's start day (sunday) date & time along with current day date & time in a tuple"""
+        current_date = datetime.now()
+        t = (6 - current_date.weekday())
+        days_to_subtract = (current_date.weekday() + t) % 7
+        sunday_of_current_week = current_date - timedelta(days=days_to_subtract)
+        startOfWeek = f"{sunday_of_current_week.strftime('%Y-%m-%d')} 07:00:00.000"
+        now = f"{current_date.date()} 18:00:00.000"
+        return (startOfWeek, now)
+
+    def calculate_average(self, csv_file: str, column_index: int, start_row: int) -> float:
+        with open(csv_file, 'r') as file:
+            reader = csv.reader(file)
+            next(reader, None)  # Skip header row
+            for _ in range(start_row - 1):
+                next(reader, None)  # Skip rows until reaching the start_row
+            data = [row[column_index] for row in reader]  # Extract data from the specified column
+            numeric_data = [float(value) for value in data if value]  # Convert data to float, ignoring empty values
+            average = sum(numeric_data) / len(numeric_data) if numeric_data else 0  # Calculate average
+            return f"{str(round(average, 2))}%"
+    
+    def calculate_counts(self, csv_file: str) -> tuple:
+        cycle_count = 0
+        simple_count = 0
+        with open(csv_file, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if row['work_type'] == 'CYCLE_COUNT':
+                    cycle_count += 1
+                elif row['work_type'] == 'SIMPLE_BIN_COUNT':
+                    simple_count += 1
+
+        return cycle_count, simple_count
 
     def close_chrome_processes(self):
         try:
