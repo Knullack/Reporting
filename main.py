@@ -81,6 +81,7 @@ if __name__ == "__main__":
     CC_andons = None
     SBC_accuracy = None
     count_completion = None
+
     SBC_accuracy = session.SBC_accuracy(accuracy_dashboard, downloads[accuracy_dashboard]['csv'], download_dir)
     count_completion = session.CC_Completion(completion_dashboard, downloads[completion_dashboard]['csv'], download_dir)
     pick_andons = session.download_csv(andons_pick, downloads[andons_pick]['csv'], download_dir, True)
@@ -172,6 +173,9 @@ try:
 
 except TypeError as e:
     print(f"Error: Failed to process SBC and CC metrics. {e}")
+except ValueError as e:
+    CC = str(websites[FCQUALITY_CC]['cycle-count']['all'])
+    SBC = str(websites[FCQUALITY_SBC]['simple-bin-count']['all'])
 
 try:
     # FCLM metrics

@@ -32,7 +32,7 @@ class chromeSession():
         self.badge = str(badge)
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
 
-    def delete_cookie_by_name(self, cookie_name):
+    def delete_cookie_by_name(self, cookie_name) -> None:
         """Deletes a cookie by name in the Chrome settings."""
         # Open Chrome settings
         self.driver.get("chrome://settings/content/all")
@@ -91,7 +91,7 @@ class chromeSession():
                 exception_count += 1
                 # logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
 
-    def launch_chrome_with_remote_debugging(self, port):
+    def launch_chrome_with_remote_debugging(self, port) -> None:
         import subprocess
         chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         subprocess.Popen([chrome_path, f"--remote-debugging-port={port}"])
@@ -147,9 +147,10 @@ class chromeSession():
                             siteERR = True
                         except TimeoutException:
                             siteERR = False
+                            table = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]')))
                     if "fc-andons" in site:
                         try:
-                            siteERR = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div')))
+                            siteERR = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div')))
                             siteERR = True
                         except TimeoutException:
                             siteERR = False
@@ -214,6 +215,7 @@ class chromeSession():
         WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a")))
         time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
         time_span.click()
+
         WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a")))
         absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
         absolute.click()
@@ -263,7 +265,7 @@ class chromeSession():
             self.driver.switch_to.frame(iframe)
             tFrom, tTo = self.timeline()
             try: 
-                WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/nav')))
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/nav')))
                 # WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/center/h1')))
                 ERR_OOPS = True
             except TimeoutException:
@@ -323,16 +325,31 @@ class chromeSession():
             else:
                 attempt += 1
 
-
     def timeline(self) -> tuple:
-        """returns current week's start day (sunday) date & time along with current day date & time in a tuple"""
-        current_date = datetime.now()
-        t = (6 - current_date.weekday())
-        days_to_subtract = (current_date.weekday() + t) % 7
-        sunday_of_current_week = current_date - timedelta(days=days_to_subtract)
-        startOfWeek = f"{sunday_of_current_week.strftime('%Y-%m-%d')} 07:00:00.000"
-        now = f"{current_date.date()} 18:00:00.000"
-        return (startOfWeek, now)
+        """returns (current week's start of week (sunday) date & default time (07:00), current day date & default time (18:00))"""
+        dFrom =f"{datetime.now().date() + timedelta(self.subtract_by(datetime.now().weekday()))} 07:00:00.000"
+        dNow = f"{datetime.now().date()} 18:00:00.000"
+
+        return (dFrom, dNow)
+
+    def subtract_by(self, day: int) -> int:
+        # sunday = 6, monday = 1,... saturday = 5
+        match day:
+            case 0: # monday
+                return -1
+            case 1: # tuesday
+                return -2
+            case 2: # wednesday
+                return -3
+            case 3: # thursday
+                return -4
+            case 4: # friday
+                return -5
+            case 5: # saturday
+                return -6
+            case 6: # sunday
+                return 0
+                
 
     def calculate_average(self, csv_file: str, column_index: int, start_row: int) -> float:
         with open(csv_file, 'r') as file:
