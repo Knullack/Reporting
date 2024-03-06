@@ -10,7 +10,7 @@ import glob
 import time
 import pandas as pd
 from datetime import datetime, timedelta
-from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -132,7 +132,7 @@ class chromeSession():
     
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
-        
+        table = None
         actions = ActionChains(self.driver)
         siteERR = None
         attempt = 0
@@ -141,9 +141,10 @@ class chromeSession():
                 self.driver.execute_script('location.reload();') if attempt == 1 else None
                 if self.driver.current_url != site:
                     self.navigate(self.driver, site, 2)
+                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
                     if "picking-console" in site:
                         try:
-                            siteERR = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span')))
+                            siteERR = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span')))
                             siteERR = True
                         except TimeoutException:
                             siteERR = False
@@ -155,11 +156,13 @@ class chromeSession():
                         except TimeoutException:
                             siteERR = False
                 if not siteERR:
+                    if table:
+                        actions.move_to_element(table)
+                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, xpath)))
                     element = self.driver.find_element(By.XPATH, xpath)
                     actions.move_to_element(element).perform()
                     return element.text
                 else:
-                    self.driver.execute_script("location.reload();")
                     attempt += 1
             except WebDriverException as WDE:
                 return f"Element not found for site '{site}' with XPath '{xpath}': {WDE}"
@@ -253,7 +256,7 @@ class chromeSession():
         except TimeoutException:
             return "SBC_Accuracy: Element not found"
     
-    def CC_Completion(self, site: str, download_anchor_xPath: str, download_dir: str) -> int:
+    def CC_Completion(self, site: str, download_anchor_xPath: str, download_dir: str) -> tuple:
         attempt = 0
         while attempt < 2:
             ERR_OOPS = False
@@ -272,30 +275,33 @@ class chromeSession():
                 ERR_OOPS = False
             
             if not ERR_OOPS:
-                # actions
-                WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')))
-                time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
-                time_span.click()
-                
-                WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')))
-                absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
-                absolute.click()
+                try:
+                    # actions
+                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')))
+                    time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
+                    time_span.click()
+                    
+                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')))
+                    absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
+                    absolute.click()
+                    
+                    eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
+                    eleFrom.clear()
+                    eleFrom.send_keys(tFrom)
 
-                eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
-                eleFrom.clear()
-                eleFrom.send_keys(tFrom)
+                    eleTo = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input')
+                    eleTo.clear()
+                    eleTo.send_keys(tTo)
 
-                eleTo = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input')
-                eleTo.clear()
-                eleTo.send_keys(tTo)
-
-                btn_GO1 = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button')
-                btn_GO1.click()
-                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
-                WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
-                # btn_GO2 = self.driver.find_element(By.XPATH, '/html/body/div[2]/div/div/navbar/form/div/div/button')
-                # btn_GO2.click()
-                # download
+                    btn_GO1 = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button')
+                    btn_GO1.click()
+                    WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                    WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                    # btn_GO2 = self.driver.find_element(By.XPATH, '/html/body/div[2]/div/div/navbar/form/div/div/button')
+                    # btn_GO2.click()
+                    # 
+                except TimeoutException:
+                    attempt += 1
                 try:
                     csv = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, download_anchor_xPath)))
                     csv.click()
@@ -329,7 +335,6 @@ class chromeSession():
         """returns (current week's start of week (sunday) date & default time (07:00), current day date & default time (18:00))"""
         dFrom =f"{datetime.now().date() + timedelta(self.subtract_by(datetime.now().weekday()))} 07:00:00.000"
         dNow = f"{datetime.now().date()} 18:00:00.000"
-
         return (dFrom, dNow)
 
     def subtract_by(self, day: int) -> int:
@@ -389,3 +394,80 @@ class chromeSession():
                 print("No Chrome processes found.")
         except Exception as e:
             print(f"Error occurred while terminating Chrome processes: {e}")
+    
+    def deleteItem(self, container_count: int):
+        self.driver.implicitly_wait(4)
+        # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
+        for tr, _ in enumerate(range(1, container_count + 1), start=1):
+            try:
+                
+                container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
+
+                asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}','/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a')
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
+
+                if 'Element not found' in asin:
+                    raise NoSuchElementException
+                # price = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={asin}', '/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[8]/td')
+                # price = price.replace('USD ', '')
+                print(f'{container}\n{asin}')
+
+                self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
+                try: 
+                    active_container = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[4]/div/div[1]/div/dl[2]/dt")))
+                    if active_container: # change container (d)
+                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[2]/span/span/input').click()
+                except TimeoutException:
+                    pass
+
+
+
+                # Scan Container
+                
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
+                input_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input')
+                input_container.click()
+
+                input_container.send_keys(f'{container}')
+                container_enter = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input')
+                container_enter.submit()
+
+
+                # Select deletion reason
+                time.sleep(1.5)
+                clickable = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
+                print(f"reasoning element: {clickable}")
+                enter = self.driver.find_element(By.CSS_SELECTOR, '#a-autoid-0 > span > input')
+                enter.submit()
+
+                # confirm it
+                time.sleep(1.5)
+                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
+                confirm_enter.click()
+                #
+                success = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div[4]/div/div[3]/div/div/h1")))
+                print(f"{container} DELETED")
+                # confirm_enter.send_keys(Keys.ENTER)
+            except NoSuchElementException:
+                # If the element is not found, print a message and continue to the next iteration
+                print(f"Element in TR: {tr} not found. Skipping to the next one.")
+                continue
+            except StaleElementReferenceException:
+                retries = 3
+                for _ in range(retries):
+                    try:
+                        confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
+                        confirm_enter.click()
+                        break
+                    except StaleElementReferenceException:
+                        continue
+                else:
+                    print("All attempts failed.")
+                    continue
+            except TimeoutException:
+                self.driver.execute_script("location.reload();")
+                continue
+            
+
+        
