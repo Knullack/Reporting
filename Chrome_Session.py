@@ -122,9 +122,9 @@ class chromeSession():
 
         # to remove the Session Restore popup
         actions = ActionChains(self.driver)
-        actions.key_down(Keys.ESCAPE)
-        actions.key_up(Keys.ESCAPE)
-        actions.perform()
+        # actions.key_down(Keys.ESCAPE)
+        # actions.key_up(Keys.ESCAPE)
+        # actions.perform()
         
         self.FCMenu_login(self.driver, self.badge)
         
@@ -400,10 +400,10 @@ class chromeSession():
         # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
         for tr, _ in enumerate(range(1, container_count + 1), start=1):
             try:
-                
-                container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
-
+                container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerLevel=PARENT_CONTAINER&containerType=CONVEYOR', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody')))
+                # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
+                # self.move_container(container, 'TRASH')
                 asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}','/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a')
                 WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
 
@@ -411,20 +411,21 @@ class chromeSession():
                     raise NoSuchElementException
                 # price = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={asin}', '/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[8]/td')
                 # price = price.replace('USD ', '')
-                print(f'{container}\n{asin}')
+                
 
                 self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
-                try: 
-                    active_container = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[4]/div/div[1]/div/dl[2]/dt")))
-                    if active_container: # change container (d)
-                        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[2]/span/span/input').click()
+                #check for undeleted container
+                try:
+                    if WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[2]/span/span/input'))): #change container btn on 'confirm deletion'
+                        # ContainerID: 
+                        previous_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[1]/div/dl[2]/dd').text
+                        # click the element
+                        WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
+                        print(f"\nPrevious container: {previous_container} DELETED\n")
+                        # Scan Container Header
+                        WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).click()
                 except TimeoutException:
                     pass
-
-
-
-                # Scan Container
-                
                 WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
                 input_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input')
                 input_container.click()
@@ -434,24 +435,21 @@ class chromeSession():
                 container_enter.submit()
 
 
-                # Select deletion reason
-                time.sleep(1.5)
-                clickable = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
-                print(f"reasoning element: {clickable}")
-                enter = self.driver.find_element(By.CSS_SELECTOR, '#a-autoid-0 > span > input')
-                enter.submit()
+                # Select reason deletion
+                clickable = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'))) # continue [enter]
+                clickable.send_keys(Keys.ENTER)
 
-                # confirm it
-                time.sleep(1.5)
-                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
-                confirm_enter.click()
-                #
-                success = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div[4]/div/div[3]/div/div/h1")))
-                print(f"{container} DELETED")
+                # Confirm Deletion
+                Delete_items_btn = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input')))
+                Delete_items_btn.send_keys(Keys.ENTER)
+                # WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
+                print(f"\nROW: {tr}\n{container} DELETED")
+                print('----------------------------------------------')
+                # time.sleep(1.5)
+                # print(f'{container} Move to TRASH')
                 # confirm_enter.send_keys(Keys.ENTER)
             except NoSuchElementException:
-                # If the element is not found, print a message and continue to the next iteration
-                print(f"Element in TR: {tr} not found. Skipping to the next one.")
+                print(f"\n Row {tr}\nNo inventory for: {container} found. Skipping to the next one.")
                 continue
             except StaleElementReferenceException:
                 retries = 3
@@ -459,6 +457,7 @@ class chromeSession():
                     try:
                         confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
                         confirm_enter.click()
+                        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
                         break
                     except StaleElementReferenceException:
                         continue
@@ -469,5 +468,27 @@ class chromeSession():
                 self.driver.execute_script("location.reload();")
                 continue
             
+    def move_container(self, container: str, destination: str) -> None:
+        move_URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
+        # self.FCMenu_login(self.driver, 12730876)
+        self.navigate(self.driver, move_URL, 5)
+        if self.driver.current_url != move_URL:
+            # Lands at FC Menu - does not navigate - reason unknown
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'))).click() # inbound
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'))).click() # move container (145)
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div/div/ul/li[2]'))).click() # move container individually
+        ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div[7]/div/input')))
+        if ready_to_move:
+                input_box = self.driver.find_element(By.XPATH, '/html/body/div/div[7]')
+                self.driver.execute_script("arguments[0].setAttribute('style', 'display: block;')", input_box)
+                # ready_to_move.send_keys('t')
+                # textbox = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div[7]/div/input'))) # scan container
+                textbox = self.driver.find_element(By.XPATH, '/html/body/div/div[7]/div/input')
+                self.driver.execute_script(f"arguments[0].value = '{container}';", textbox)
+                textbox.send_keys(Keys.ENTER)
+                textbox.send_keys(Keys.ENTER)
+                ready_to_send = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'))) # Scan destination container
+                ready_to_send.send_keys('t')
 
-        
+                ready_to_send.send_keys(destination)
+                ready_to_send.send_keys(Keys.ENTER)
