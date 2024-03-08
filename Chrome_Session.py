@@ -245,7 +245,7 @@ class chromeSession():
                 return None
 
             latest_file = max(csv_files, key=os.path.getmtime)
-
+            print(f"Accuracy File: {latest_file}")
             # Use Pandas to open and read the CSV file
             if os.path.exists(latest_file):
                 return self.calculate_average(latest_file, 5, 1)
@@ -310,8 +310,8 @@ class chromeSession():
                     btn_ok.click()
                     start_time = time.time()
                     WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
-                    # can take quite a few seconds to download file (40s max)
-                    WebDriverWait(self.driver, 40).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                    # can take quite a few seconds to download file (60s max)
+                    WebDriverWait(self.driver, 60).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
                     csv_files = []
                     csv_files.extend(glob.glob(os.path.join(download_dir, f"export_*.csv")))
                     if not csv_files:
@@ -319,7 +319,7 @@ class chromeSession():
                         return None
 
                     latest_file = max(csv_files, key=os.path.getmtime)
-
+                    print(f"completion file: {latest_file}")
                     # Use Pandas to open and read the CSV file
                     if os.path.exists(latest_file):
                         elapsed_time = time.time() - start_time
@@ -377,8 +377,10 @@ class chromeSession():
                     cycle_count += 1
                 elif row['work_type'] == 'SIMPLE_BIN_COUNT':
                     simple_count += 1
-
-        return cycle_count, simple_count
+        if type(cycle_count) != int and type(simple_count) != int:
+            raise ValueError(f"Cycle Count Type: {type(cycle_count)}::: value: {cycle_count}\nSimple Count Type: {type(simple_count)}::: value: {simple_count}")
+        else:
+            return cycle_count, simple_count
 
     def close_chrome_processes(self):
         try:

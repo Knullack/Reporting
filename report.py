@@ -90,11 +90,11 @@ if __name__ == "__main__":
                 websites[website][category][subcategory] = session.get_text(website, xpath)
 
 
-    SBC_accuracy = session.SBC_accuracy(accuracy_dashboard, downloads[accuracy_dashboard]['csv'], download_dir)
-    count_completion = session.CC_Completion(completion_dashboard, downloads[completion_dashboard]['csv'], download_dir)
+
     pick_andons = session.download_csv(andons_pick, downloads[andons_pick]['csv'], download_dir, True)
     CC_andons = session.download_csv(andons_CC, downloads[andons_CC]['csv'], download_dir)
-
+    SBC_accuracy = session.SBC_accuracy(accuracy_dashboard, downloads[accuracy_dashboard]['csv'], download_dir)
+    count_completion = session.CC_Completion(completion_dashboard, downloads[completion_dashboard]['csv'], download_dir)
     session.close()
 
 
