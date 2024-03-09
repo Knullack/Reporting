@@ -45,7 +45,7 @@ if __name__ == "__main__":
         },
         "https://fc-quality-dashboard-iad.aka.amazon.com/management/count_density?work_type=CYCLE_COUNT": {
             "cycle-count": {
-                "all": '/html/body/div/table/tbody/tr[7]/td[3]/a'
+                "all": '/html/body/div/table/tbody/tr[5]/td[3]/a'
             }
         },
         "https://fc-quality-dashboard-iad.aka.amazon.com/management/count_density?work_type=SIMPLE_BIN_COUNT": {

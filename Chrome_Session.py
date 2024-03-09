@@ -165,19 +165,15 @@ class chromeSession():
                 else:
                     attempt += 1
             except WebDriverException as WDE:
-                return f"Element not found for site '{site}' with XPath '{xpath}': {WDE}"
+                return f"Element not found for site '{site}' with XPath '{xpath}'"
     
     def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
         self.navigate(self.driver, url, 5)
         
         # Wait for the download button to become clickable
-        download_button = WebDriverWait(self.driver, 30).until(
-            EC.element_to_be_clickable((By.XPATH, button_xpath))
-        )
+        download_button = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, button_xpath)))
         download_button.click()
-
         time.sleep(5)
-
         csv_files = []
         if pick_andon:
             csv_files.extend(glob.glob(os.path.join(download_dir, f"Pick All types*.csv")))
@@ -219,8 +215,7 @@ class chromeSession():
         time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
         time_span.click()
 
-        WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a")))
-        absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
+        absolute = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a")))
         absolute.click()
 
         eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
@@ -237,7 +232,7 @@ class chromeSession():
             csv = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, download_anchor_xPath)))
             csv.click()
             time.sleep(3)
-            WebDriverWait(self.driver, 15).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+            WebDriverWait(self.driver, 60).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large"))) # website loading effect element
             csv_files = []
             csv_files.extend(glob.glob(os.path.join(download_dir, f"table_*.csv")))
             if not csv_files:
@@ -245,7 +240,7 @@ class chromeSession():
                 return None
 
             latest_file = max(csv_files, key=os.path.getmtime)
-            print(f"Accuracy File: {latest_file}")
+            print(f'Accuracy File: {str(latest_file).split(r"\\")[-1]}')
             # Use Pandas to open and read the CSV file
             if os.path.exists(latest_file):
                 return self.calculate_average(latest_file, 5, 1)
@@ -319,7 +314,7 @@ class chromeSession():
                         return None
 
                     latest_file = max(csv_files, key=os.path.getmtime)
-                    print(f"completion file: {latest_file}")
+                    print(f"completion file: {str(latest_file).split(r"\\")[-1]}")
                     # Use Pandas to open and read the CSV file
                     if os.path.exists(latest_file):
                         elapsed_time = time.time() - start_time
