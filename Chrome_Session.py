@@ -165,7 +165,8 @@ class chromeSession():
                 else:
                     attempt += 1
             except WebDriverException as WDE:
-                return f"Element not found for site '{site}' with XPath '{xpath}'"
+                # return f"Element not found for site '{site}' with XPath '{xpath}'"
+                raise NoSuchElementException
     
     def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
         self.navigate(self.driver, url, 5)
@@ -392,37 +393,38 @@ class chromeSession():
         except Exception as e:
             print(f"Error occurred while terminating Chrome processes: {e}")
     
-    def deleteItem(self, container_count: int):
-        self.driver.implicitly_wait(4)
-        # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
-        for tr, _ in enumerate(range(1, container_count + 1), start=1):
-            try:
-                container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerLevel=PARENT_CONTAINER&containerType=CONVEYOR', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody')))
-                # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
-                # self.move_container(container, 'TRASH')
-                asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}','/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a')
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
+    def delete_get_container(self, tr):
+        container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody')))
+        # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
+        # self.move_container(container, 'TRASH')
+        asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}','/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a')
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
+        if "B00" in asin:
+            return container
 
-                if 'Element not found' in asin:
-                    raise NoSuchElementException
-                # price = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={asin}', '/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[8]/td')
-                # price = price.replace('USD ', '')
-                
+
+    def deleteItem(self, container, container_count: int):
+        # self.driver.implicitly_wait(4)
+        # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
+        # for tr, _ in enumerate(range(1, container_count + 1), start=1):
+        a = 0
+        for a in range(1):
+            try:              
 
                 self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
                 #check for undeleted container
-                try:
-                    if WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[2]/span/span/input'))): #change container btn on 'confirm deletion'
-                        # ContainerID: 
-                        previous_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[1]/div/dl[2]/dd').text
-                        # click the element
-                        WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
-                        print(f"\nPrevious container: {previous_container} DELETED\n")
-                        # Scan Container Header
-                        WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).click()
-                except TimeoutException:
-                    pass
+                # try:
+                #     if WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[2]/span/span/input'))): #change container btn on 'confirm deletion'
+                #         # ContainerID: 
+                #         previous_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[1]/div/dl[2]/dd').text
+                #         # click the element
+                #         WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
+                #         print(f"\nPrevious container: {previous_container} DELETED\n")
+                #         # Scan Container Header
+                #         WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).click()
+                # except TimeoutException:
+                #     pass
                 WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
                 input_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input')
                 input_container.click()
@@ -430,23 +432,31 @@ class chromeSession():
                 input_container.send_keys(f'{container}')
                 container_enter = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input')
                 container_enter.submit()
-
-
+                
+                # processing...
+                # WebDriverWait(self.driver, 10).until_not(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[2]/div/div/h1')))
+                time.sleep(2)
+                cnt_empty_message = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div')))
+                if f"Container {container} is empty." in cnt_empty_message.text:
+                    break
                 # Select reason deletion
-                clickable = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'))) # continue [enter]
+                clickable = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'))) # continue [enter]
                 clickable.send_keys(Keys.ENTER)
-
+                time.sleep(2)
                 # Confirm Deletion
                 Delete_items_btn = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input')))
                 Delete_items_btn.send_keys(Keys.ENTER)
                 # WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
-                print(f"\nROW: {tr}\n{container} DELETED")
+                print(f"{container} DELETED")
                 print('----------------------------------------------')
+                self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
                 # time.sleep(1.5)
                 # print(f'{container} Move to TRASH')
                 # confirm_enter.send_keys(Keys.ENTER)
             except NoSuchElementException:
-                print(f"\n Row {tr}\nNo inventory for: {container} found. Skipping to the next one.")
+                delete_times_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input')))
+                delete_times_enter.submit()
+                # print(f"No inventory for: {container} found. Skipping to the next one.")
                 continue
             except StaleElementReferenceException:
                 retries = 3
@@ -477,6 +487,7 @@ class chromeSession():
         ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div[7]/div/input')))
         if ready_to_move:
                 input_box = self.driver.find_element(By.XPATH, '/html/body/div/div[7]')
+                self.driver.send_keys()
                 self.driver.execute_script("arguments[0].setAttribute('style', 'display: block;')", input_box)
                 # ready_to_move.send_keys('t')
                 # textbox = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div[7]/div/input'))) # scan container
