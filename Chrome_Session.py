@@ -406,6 +406,16 @@ class chromeSession():
     
 
     def deleteItem(self, container:str, container_count: int, ) -> None:
+        def get_container(self, tr):
+            container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody')))
+            # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
+            # self.move_container(container, 'TRASH')
+            asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}','/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a')
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
+            if "B00" in asin:
+                return container
+
         def wait_for_processing():
             # "processing..." element
             WebDriverWait(self.driver, 10).until_not(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[2]/div/div/h1')))
