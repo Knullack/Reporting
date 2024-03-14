@@ -70,7 +70,7 @@ class chromeSession():
 
     def FCMenu_login(self, driver: Chrome, badge: str) -> None:
         """Logs into FCMenu with given BADGE"""
-        self.navigate(driver, LOGIN_URL, 5)
+        self.navigate(LOGIN_URL, 5)
         driver.get(LOGIN_URL)
         loginBadge = badge
         input_element = driver.find_element('xpath', '//*[@id="badgeBarcodeId"]')
@@ -80,12 +80,12 @@ class chromeSession():
         element.send_keys(text_to_type)
         element.send_keys(Keys.ENTER)
         
-    def navigate(self, driver: Chrome, url: str, max_attempts: int) -> None:
+    def navigate(self, url: str, max_attempts: int) -> None:
         """Navigate to give URL"""
         exception_count = 0
         while exception_count < max_attempts:
             try:
-                driver.get(url)
+                self.driver.get(url)
                 return
             except WebDriverException as se:
                 exception_count += 1
@@ -140,7 +140,7 @@ class chromeSession():
             try:
                 self.driver.execute_script('location.reload();') if attempt == 1 else None
                 if self.driver.current_url != site:
-                    self.navigate(self.driver, site, 2)
+                    self.navigate(site, 2)
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
                     if "picking-console" in site:
                         try:
@@ -169,7 +169,7 @@ class chromeSession():
                 raise NoSuchElementException
     
     def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
-        self.navigate(self.driver, url, 5)
+        self.navigate(url, 5)
         
         # Wait for the download button to become clickable
         download_button = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, button_xpath)))
@@ -206,7 +206,7 @@ class chromeSession():
     def SBC_accuracy(self, site: str, download_anchor_xPath: str, download_dir: str) -> float:
         # navigation
         actions = ActionChains(self.driver)
-        self.navigate(self.driver, site, 5)
+        self.navigate(site, 5)
         iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/iframe")))
         self.driver.switch_to.frame(iframe)
         tFrom, tTo = self.timeline()
@@ -256,7 +256,7 @@ class chromeSession():
         attempt = 0
         while attempt < 2:
             ERR_OOPS = False
-            self.driver.execute_script('location.reload();') if attempt == 1 else self.navigate(self.driver, site, 5)
+            self.driver.execute_script('location.reload();') if attempt == 1 else self.navigate(site, 5)
             # navigation
             actions = ActionChains(self.driver)
             # self.navigate(self.driver, site, 5)
@@ -447,10 +447,10 @@ class chromeSession():
         # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
         # for tr, _ in enumerate(range(1, container_count + 1), start=1):
         a = 0
-        for a in range(1):
+        for a in range(1) :
             try:              
 
-                self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
+                self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
                 enter_container(container)
 
                 #check for undeleted container
@@ -471,7 +471,7 @@ class chromeSession():
                 # WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
                 print(f"{container} DELETED")
                 print('----------------------------------------------')
-                self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
+                self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
 
                 # time.sleep(1.5)
                 # print(f'{container} Move to TRASH')
@@ -502,7 +502,7 @@ class chromeSession():
     def move_container(self, container: str, destination: str) -> None:
         move_URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
         # self.FCMenu_login(self.driver, 12730876)
-        self.navigate(self.driver, move_URL, 5)
+        self.navigate(move_URL, 5)
         if self.driver.current_url != move_URL:
             # Lands at FC Menu - does not navigate - reason unknown
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'))).click() # inbound
