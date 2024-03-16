@@ -10,7 +10,7 @@ import glob
 import time
 import pandas as pd
 from datetime import datetime, timedelta
-from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -121,7 +121,7 @@ class chromeSession():
         # self.delete_cookie_by_name('a2z.com')
 
         # to remove the Session Restore popup
-        actions = ActionChains(self.driver)
+        self.actions = ActionChains(self.driver)
         # actions.key_down(Keys.ESCAPE)
         # actions.key_up(Keys.ESCAPE)
         # actions.perform()
@@ -405,27 +405,35 @@ class chromeSession():
 
 
     def deleteItem(self, container, container_count: int):
+        def start_over():
+            try:
+                restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a')))
+                restart.click()
+                #start over element
+                # wait for popup content
+                time.sleep(.5)
+                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1')))
+                coord = element.location_once_scrolled_into_view
+                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+                # scan container header
+                time.sleep(.5)
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
+                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1')))
+                coord = element.location_once_scrolled_into_view
+                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+                _ = 0
+            except TimeoutException:
+                pass
+
         # self.driver.implicitly_wait(4)
         # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
         # for tr, _ in enumerate(range(1, container_count + 1), start=1):
-        a = 0
-        for a in range(1):
+        for _ in range(1):
             try:              
 
                 self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
-                #check for undeleted container
-                # try:
-                #     if WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[2]/span/span/input'))): #change container btn on 'confirm deletion'
-                #         # ContainerID: 
-                #         previous_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[1]/div/dl[2]/dd').text
-                #         # click the element
-                #         WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
-                #         print(f"\nPrevious container: {previous_container} DELETED\n")
-                #         # Scan Container Header
-                #         WebDriverWait(self.driver, 1).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).click()
-                # except TimeoutException:
-                #     pass
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
+                if not WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))):
+                    start_over()
                 input_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input')
                 input_container.click()
 
@@ -440,7 +448,8 @@ class chromeSession():
                 time.sleep(1)
 
                 #"select item to delete"
-                if "Select item to delete" in WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).text:
+                H1_header =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).text
+                if "Select item to delete" in H1_header or "Select deletion reason" in H1_header:
                     pass
                 # container empty message
                 else:
@@ -468,13 +477,7 @@ class chromeSession():
                 # print(f'{container} Move to TRASH')
                 # confirm_enter.send_keys(Keys.ENTER)
             except NoSuchElementException:
-                restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a')))
-                restart.click()
-                
-                #start over element
-                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body'))).send_keys('R')
-                # print(f"No inventory for: {container} found. Skipping to the next one.")
-                continue
+                start_over()
             except StaleElementReferenceException:
                 retries = 3
                 for _ in range(retries):
@@ -493,6 +496,8 @@ class chromeSession():
             except TimeoutException:
                 self.driver.execute_script("location.reload();")
                 continue
+            except  ElementClickInterceptedException:
+                start_over()
             
     def move_container(self, container: str, destination: str) -> None:
         move_URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
