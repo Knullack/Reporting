@@ -25,6 +25,12 @@ logging.basicConfig(level=logging.ERROR)
 SITE = "https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/overview"
 LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
 
+class header:
+    SCAN = 'Scan container'
+    SELECT = 'Select item to delete'
+    REASON = 'Select reason to delete'
+    CONFIRM = 'Confirm Deletion'
+
 class chromeSession():
     def __init__(self, badge: int):
         """Badge for FC Menu login"""
@@ -404,8 +410,8 @@ class chromeSession():
             return container
 
 
-    def  deleteItem(self, container, container_count: int):
-        def start_over():
+    def deleteItem(self, container, container_count: int):
+        def start_over() -> None:
             try:
                 restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a')))
                 restart.click()
@@ -425,10 +431,8 @@ class chromeSession():
             except TimeoutException:
                 pass
         
-        def enter_container():
+        def enter_container() -> None:
             self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
-            if not WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))):
-                start_over()
             input_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input')
             input_container.click()
 
@@ -449,53 +453,68 @@ class chromeSession():
                 cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div')))
                 if f"Container {container} is empty." in cnt_empty_message.text:
                     return False
-            
-            
-        def select_reason():
+                   
+        def select_reason() -> None:
             reason_continue_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input')))
             reason_continue_enter.submit()
 
-        def confirm_deletion():
+        def confirm_deletion() -> None:
             #wait for  "confirm the deletion H1"
             WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
             confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input')))
             confirm_delete_enter.send_keys(Keys.ENTER)
 
-        # self.driver.implicitly_wait(4)
-        # self.navigate(self.driver, 'https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?containerType=CONVEYOR&containerLevel=PARENT_CONTAINER', 5)
-        # for tr, _ in enumerate(range(1, container_count + 1), start=1):
-        for _ in range(1):
-            try:              
-                enter_container()
-                if not select_item():
-                    break
-                time.sleep(1)
-                select_reason()
-                confirm_deletion()
-                print(f"{container} DELETED")
-                print('----------------------------------------------')
-                self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
-            except NoSuchElementException:
-                start_over()
-            except StaleElementReferenceException:
-                retries = 3
-                for _ in range(retries):
-                    try:
-                        confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
-                        confirm_enter.click()
+        def get_header_text() -> str:
+            return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).text
 
-                        #wait for "Scan container" H1
-                        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
-                        break
+        for _ in range(1):
+            current_state = header.SCAN
+            start_over() if get_header_text() != header.SCAN else None
+            while current_state != 'end':
+                if current_state == header.SCAN:
+                    try:
+                        enter_container()
+                        current_state = get_header_text()
+                        
+                    except NoSuchElementException:
+                        start_over()
+
                     except StaleElementReferenceException:
-                        continue
-                else:
-                    print("All attempts failed.")
-                    start_over()
-            except TimeoutException:
-                start_over()
-            except  ElementClickInterceptedException:
-                start_over()
+                        retries = 3
+                        for _ in range(retries):
+                            try:
+                                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
+                                confirm_enter.click()
+
+                                #wait for "Scan container" H1
+                                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
+                                break
+                            except StaleElementReferenceException:
+                                continue
+                        else:
+                            print("All attempts failed.")
+                            start_over()
+                    
+                    except TimeoutException:
+                        start_over()
+
+                    except ElementClickInterceptedException:
+                        start_over()
+
+                elif current_state == header.SELECT:
+                    if not select_item():
+                        current_state = 'end'
+                    else:
+                        current_state = header.REASON
+
+                elif current_state == header.REASON:
+                    select_reason()
+                    current_state = header.CONFIRM
+
+                elif current_state == header.CONFIRM:
+                    confirm_deletion()
+                    print(f"{container} DELETED\n{'-' * 47}")
+                    current_state = 'end'            
             
     def move_container(self, container: str, destination: str) -> None:
         move_URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
