@@ -4,7 +4,8 @@ import subprocess
 import sys
 import os
 import csv
-import statistics
+import io
+from PIL import Image
 import time
 import glob
 import time
@@ -96,7 +97,7 @@ class chromeSession():
         self.driver = None
         self.badge = str(badge)
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
-
+        
     def delete_cookie_by_name(self, cookie_name) -> None:
         """Deletes a cookie by name in the Chrome settings."""
         # Open Chrome settings
@@ -173,6 +174,7 @@ class chromeSession():
 
         self.driver = Chrome(options=optionals)
         self.driver.implicitly_wait(10)
+        self.actions = ActionChains(self.driver)
         self.FCMenu_login(self.driver, self.badge)
             
     def get_text(self, site: str, xpath: str) -> str:
@@ -570,3 +572,15 @@ class chromeSession():
 
                 ready_to_send.send_keys(destination)
                 ready_to_send.send_keys(Keys.ENTER)
+    
+    def screenshot(self, site, xpath):
+        self.driver.maximize_window()
+        self.navigate(site)
+        try:
+            self.actions.move_to_element(self.driver.find_element('xpath', xpath)).perform()
+            image_binary  = self.driver.find_element('xpath', xpath).screenshot_as_png
+            img = Image.open(io.BytesIO(image_binary))
+            t = time.time()
+            img.save(f"image-{t}.png")
+        except NoSuchElementException as e:
+            logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {e}")
