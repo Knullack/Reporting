@@ -24,14 +24,73 @@ logging.basicConfig(level=logging.ERROR)
 
 SITE = "https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/overview"
 LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
+CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
+
+class locator:
+    body = '/html/body'
+    nav = '/html/body/nav'
+    class xpath:
+
+        class counts:
+            time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
+            iframe = '/html/body/div/iframe'
+            absolute = '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a'
+            time_from = '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input'
+            time_to = '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input'
+            go = '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button'
+            okay = '/html/body/div[4]/div/div/div[2]/button[2]'
+       
+        class peculiar_inventory:
+            table_body = '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody'
+ 
+        class delete:
+            H1_header = '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'
+            restart = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
+            btn_restart = '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1'
+            
+            class scan:
+                input = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'
+                enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'
+            class select:
+                enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'
+                container_empty = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div'
+            class reason:
+                enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'
+            class confirm:
+                enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'
+ 
+        class fcmenu:
+            input_badge = '//*[@id="badgeBarcodeId"]'
+            inbound = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
+            move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            individually_workflow = '/html/body/div/div/div/ul/li[2]'
+            class move_container:
+                input = '/html/body/div/div[7]/div/input'
+                input_box = '/html/body/div/div[7]'
+                label_scan_destination = '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'
+
+        class picking_console:
+            error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span'
+            table = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]'
+        
+        class fc_andons:
+            error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div'
+
+    class class_name:
+        class delete:
+            enter = 'a-button-input'
+        
+        class cc_completion:
+            spinner = 'spinner.large'
 
 class header:
     SCAN = 'Scan container'
     SELECT = 'Select item to delete'
-    REASON = 'Select reason to delete'
+    REASON = ['Select reason to delete','Select deletion reason']
     CONFIRM = 'Confirm Deletion'
 
-class chromeSession():
+class chromeSession(): 
     def __init__(self, badge: int):
         """Badge for FC Menu login"""
         self.driver = None
@@ -79,7 +138,7 @@ class chromeSession():
         self.navigate(driver, LOGIN_URL, 5)
         driver.get(LOGIN_URL)
         loginBadge = badge
-        input_element = driver.find_element('xpath', '//*[@id="badgeBarcodeId"]')
+        input_element = driver.find_element('xpath', locator.xpath.fcmenu.input_badge)
         self.HELPER_type_and_click(input_element,loginBadge)
 
     def HELPER_type_and_click(self, element: object, text_to_type: str) -> None:
@@ -99,7 +158,7 @@ class chromeSession():
 
     def launch_chrome_with_remote_debugging(self, port) -> None:
         import subprocess
-        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        chrome_path = CHROME_PATH
         subprocess.Popen([chrome_path, f"--remote-debugging-port={port}"])
 
     def start(self) -> object:
@@ -108,34 +167,14 @@ class chromeSession():
         self.port = 9200
         self.launch_chrome_with_remote_debugging(self.port)
         optionals = ChromeOptions()
-        optionals.add_argument('--log-level=3')
-        optionals.add_argument('--force-device-scale-factor=0.7')
-        optionals.add_argument('--disable-blink-features=AutomationControlled')
-        optionals.add_argument('--disable-notifications')
-        optionals.add_argument('--disable-infobars')
-        optionals.add_argument('--disable-extensions')
-        optionals.add_argument('--disable-dev-shm-usage')
-        optionals.add_argument('--disable-gpu')
-        optionals.add_argument('--disable-browser-side-navigation')
-        optionals.add_argument('--disable-features=VizDisplayCompositor')
-        optionals.add_argument('--no-sandbox')
-        optionals.add_argument('--disable-logging')
+        for arg in ARGUMENTS:
+            optionals.add_argument(arg)
         optionals.add_experimental_option("debuggerAddress", f"127.0.0.1:{self.port}")
 
         self.driver = Chrome(options=optionals)
         self.driver.implicitly_wait(10)
-        # self.delete_cookie_by_name('a2z.com')
-
-        # to remove the Session Restore popup
-        self.actions = ActionChains(self.driver)
-        # actions.key_down(Keys.ESCAPE)
-        # actions.key_up(Keys.ESCAPE)
-        # actions.perform()
-        
         self.FCMenu_login(self.driver, self.badge)
-        
-        # self.driver.refresh()
-    
+            
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
         table = None
@@ -147,17 +186,17 @@ class chromeSession():
                 self.driver.execute_script('location.reload();') if attempt == 1 else None
                 if self.driver.current_url != site:
                     self.navigate(self.driver, site, 2)
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
+                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.body)))
                     if "picking-console" in site:
                         try:
-                            siteERR = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span')))
+                            siteERR = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.picking_console.error_msg)))
                             siteERR = True
                         except TimeoutException:
                             siteERR = False
-                            table = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]')))
+                            table = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.picking_console.table)))
                     if "fc-andons" in site:
                         try:
-                            siteERR = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div')))
+                            siteERR = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.error_msg)))
                             siteERR = True
                         except TimeoutException:
                             siteERR = False
@@ -211,28 +250,27 @@ class chromeSession():
     
     def SBC_accuracy(self, site: str, download_anchor_xPath: str, download_dir: str) -> float:
         # navigation
-        actions = ActionChains(self.driver)
         self.navigate(self.driver, site, 5)
-        iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/iframe")))
+        iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.counts.iframe)))
         self.driver.switch_to.frame(iframe)
         tFrom, tTo = self.timeline()
 
         # actions
         WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a")))
-        time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
+        time_span = self.driver.find_element(By.XPATH, locator.xpath.counts.time_span)
         time_span.click()
 
-        absolute = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a")))
+        absolute = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.counts.absolute)))
         absolute.click()
 
-        eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
+        eleFrom = self.driver.find_element(By.XPATH, locator.xpath.counts.time_from)
         eleFrom.clear()
         eleFrom.send_keys(tFrom)
 
-        eleTo = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input')
+        eleTo = self.driver.find_element(By.XPATH, locator.xpath.counts.time_to)
         eleTo.clear()
         eleTo.send_keys(tTo)
-        btn_GO = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button')
+        btn_GO = self.driver.find_element(By.XPATH, locator.xpath.counts.go)
         btn_GO.click()
         # download
         try:
@@ -264,14 +302,11 @@ class chromeSession():
             ERR_OOPS = False
             self.driver.execute_script('location.reload();') if attempt == 1 else self.navigate(self.driver, site, 5)
             # navigation
-            actions = ActionChains(self.driver)
-            # self.navigate(self.driver, site, 5)
-            iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/iframe")))
+            iframe = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.counts.iframe)))
             self.driver.switch_to.frame(iframe)
             tFrom, tTo = self.timeline()
             try: 
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/nav')))
-                # WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/center/h1')))
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.nav)))
                 ERR_OOPS = True
             except TimeoutException:
                 ERR_OOPS = False
@@ -280,40 +315,36 @@ class chromeSession():
                 try:
                     # actions
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')))
-                    time_span = self.driver.find_element(By.XPATH, '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a')
+                    time_span = self.driver.find_element(By.XPATH, locator.xpath.counts.time_span)
                     time_span.click()
                     
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')))
-                    absolute = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[1]/ul/li[3]/a')
+                    absolute = self.driver.find_element(By.XPATH, locator.xpath.counts.absolute)
                     absolute.click()
                     
-                    eleFrom = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[1]/div[1]/input')
+                    eleFrom = self.driver.find_element(By.XPATH, locator.xpath.counts.time_from)
                     eleFrom.clear()
                     eleFrom.send_keys(tFrom)
 
-                    eleTo = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[2]/div[1]/input')
+                    eleTo = self.driver.find_element(By.XPATH, locator.xpath.counts.time_to)
                     eleTo.clear()
                     eleTo.send_keys(tTo)
 
-                    btn_GO1 = self.driver.find_element(By.XPATH, '/html/body/div[2]/config/div/div[1]/kbn-timepicker/div/div/div[1]/div/div[2]/div/div/form/div[3]/div/button')
+                    btn_GO1 = self.driver.find_element(By.XPATH, locator.xpath.counts.go)
                     btn_GO1.click()
-                    WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
-                    WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
-                    # btn_GO2 = self.driver.find_element(By.XPATH, '/html/body/div[2]/div/div/navbar/form/div/div/button')
-                    # btn_GO2.click()
-                    # 
+                    WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, locator.class_name.cc_completion.spinner)))
+                    WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.CLASS_NAME, locator.class_name.cc_completion.spinner)))
                 except TimeoutException:
                     attempt += 1
                 try:
                     csv = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, download_anchor_xPath)))
                     csv.click()
 
-                    btn_ok = self.driver.find_element(By.XPATH, '/html/body/div[4]/div/div/div[2]/button[2]')
+                    btn_ok = self.driver.find_element(By.XPATH, locator.xpath.counts.okay)
                     btn_ok.click()
                     start_time = time.time()
-                    WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "spinner.large")))
                     # can take quite a few seconds to download file (60s max)
-                    WebDriverWait(self.driver, 60).until(EC.invisibility_of_element_located((By.CLASS_NAME, "spinner.large")))
+                    WebDriverWait(self.driver, 60).until(EC.invisibility_of_element_located((By.CLASS_NAME, locator.class_name.cc_completion.spinner)))
                     csv_files = []
                     csv_files.extend(glob.glob(os.path.join(download_dir, f"export_*.csv")))
                     if not csv_files:
@@ -357,7 +388,6 @@ class chromeSession():
             case 6: # sunday
                 return 0
                 
-
     def calculate_average(self, csv_file: str, column_index: int, start_row: int) -> float:
         with open(csv_file, 'r') as file:
             reader = csv.reader(file)
@@ -401,30 +431,29 @@ class chromeSession():
     
     def delete_get_container(self, tr):
         container = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody')))
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.peculiar_inventory.table_body)))
         # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
         # self.move_container(container, 'TRASH')
         asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}','/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a')
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body')))
-        if "B00" in asin:
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.body)))
+        if "B00" in asin or 'X00' in asin:
             return container
-
 
     def deleteItem(self, container, container_count: int):
         def start_over() -> None:
             try:
-                restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a')))
+                restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.restart)))
                 restart.click()
                 #start over element
                 # wait for popup content
                 time.sleep(.5)
-                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1')))
+                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
                 coord = element.location_once_scrolled_into_view
                 self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                 # scan container header
                 time.sleep(.5)
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
-                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1')))
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
+                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
                 coord = element.location_once_scrolled_into_view
                 self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                 _ = 0
@@ -433,39 +462,39 @@ class chromeSession():
         
         def enter_container() -> None:
             self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
-            input_container = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input')
+            input_container = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.input_container)
             input_container.click()
 
             input_container.send_keys(f'{container}')
-            container_enter = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input')
+            container_enter = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter)
             container_enter.submit()
 
         def select_item() -> bool:
             #"select item to delete"
-            H1_header =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).text
-            if "Select item to delete" in H1_header or "Select deletion reason" in H1_header:
-                continue_enter = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'))) # continue [enter]
+            H1_header =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
+            if header.REASON[0] in H1_header or header.REASON[1] in H1_header:
+                continue_enter = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.select.enter))) # continue [enter]
                 continue_enter.submit()
                 time.sleep(1)
                 return True
             # container empty message
             else:
-                cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div')))
+                cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
                 if f"Container {container} is empty." in cnt_empty_message.text:
                     return False
                    
         def select_reason() -> None:
-            reason_continue_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input')))
+            reason_continue_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.reason.enter)))
             reason_continue_enter.submit()
 
         def confirm_deletion() -> None:
             #wait for  "confirm the deletion H1"
-            WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
-            confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input')))
+            WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
+            confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.confirm.enter)))
             confirm_delete_enter.send_keys(Keys.ENTER)
 
         def get_header_text() -> str:
-            return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'))).text
+            return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
 
         for _ in range(1):
             current_state = header.SCAN
@@ -483,11 +512,11 @@ class chromeSession():
                         retries = 3
                         for _ in range(retries):
                             try:
-                                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "a-button-input")))
+                                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, locator.class_name.delete.enter)))
                                 confirm_enter.click()
 
                                 #wait for "Scan container" H1
-                                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
+                                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
                                 break
                             except StaleElementReferenceException:
                                 continue
@@ -505,11 +534,11 @@ class chromeSession():
                     if not select_item():
                         current_state = 'end'
                     else:
-                        current_state = header.REASON
+                        current_state = get_header_text()
 
-                elif current_state == header.REASON:
+                elif current_state in header.REASON:
                     select_reason()
-                    current_state = header.CONFIRM
+                    current_state = get_header_text()
 
                 elif current_state == header.CONFIRM:
                     confirm_deletion()
@@ -522,21 +551,21 @@ class chromeSession():
         self.navigate(self.driver, move_URL, 5)
         if self.driver.current_url != move_URL:
             # Lands at FC Menu - does not navigate - reason unknown
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'))).click() # inbound
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'))).click() # move container (145)
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div/div/ul/li[2]'))).click() # move container individually
-        ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div[7]/div/input')))
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.inbound))).click() # inbound
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container_145))).click() # move container (145)
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.individually_workflow))).click() # move container individually
+        ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
         if ready_to_move:
-                input_box = self.driver.find_element(By.XPATH, '/html/body/div/div[7]')
+                input_box = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input_box)
                 self.driver.send_keys()
                 self.driver.execute_script("arguments[0].setAttribute('style', 'display: block;')", input_box)
                 # ready_to_move.send_keys('t')
                 # textbox = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div[7]/div/input'))) # scan container
-                textbox = self.driver.find_element(By.XPATH, '/html/body/div/div[7]/div/input')
+                textbox = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
                 self.driver.execute_script(f"arguments[0].value = '{container}';", textbox)
                 textbox.send_keys(Keys.ENTER)
                 textbox.send_keys(Keys.ENTER)
-                ready_to_send = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'))) # Scan destination container
+                ready_to_send = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.label_scan_destination))) # Scan destination container
                 ready_to_send.send_keys('t')
 
                 ready_to_send.send_keys(destination)
