@@ -4,7 +4,7 @@ import subprocess
 import sys
 import os
 import csv
-import statistics
+from datetime import datetime
 import time
 import glob
 import time
@@ -470,7 +470,7 @@ class chromeSession():
                 confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input')))
                 confirm_delete_enter.send_keys(Keys.ENTER)
                 # WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'))).click()
-                print(f"{container} DELETED")
+                print(f"{datetime.now().strftime("%H:%M:%S")} {container} DELETED")
                 print('----------------------------------------------')
                 self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop', 5)
                 # time.sleep(1.5)
