@@ -8,15 +8,14 @@ if __name__ == "__main__":
     download_dir = r"C:\Users\nuneadon.ANT\Downloads"
     session = chromeSession(12730876)
     session.start()
-    containers = ['csXPH4KHYQ6',
-    'csXGY8oCdgg',
-    'csXGXP7JXWz',
-    'csXTh0KK6pW',
+    containers = [
+        'csXTi0Jn5Iy',
+        'csXTi0Jn5Iy',
     ]
     qty = len(containers)
     for csX in containers:
         start_time = time()
-        session.deleteItem(csX, qty)
+        session.deleteItem(csX)
         elapsed_time = time() - start_time
         if elapsed_time < 60:
             print(f"Runtime: {elapsed_time:.2f} seconds")

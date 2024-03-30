@@ -54,6 +54,8 @@ class locator:
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'
                 container_empty = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div'
             class reason:
+                reason_statement  = '/html/body/div[1]/div[4]/div/div[1]/div/dl[3]/dd'
+                sweeping_out = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/fieldset/div[1]/div/div/label/span'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'
             class confirm:
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'
@@ -93,7 +95,7 @@ class header:
     SCAN = 'Scan container'
     SELECT = 'Select item to delete'
     REASON = ['Select reason to delete','Select deletion reason']
-    CONFIRM = 'Confirm Deletion'
+    CONFIRM = 'Confirm the deletion'
 
 class chromeSession():
     def __init__(self, badge: int):
@@ -443,6 +445,7 @@ class chromeSession():
 
     def deleteItem(self, container):
         """Uses DeleteItemsApp to 'delete' containers given into the parameter"""
+        self.navigate(self.driver, 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
         def get_container(tr):
             """Gets the container from the peculiar inventory site"""
             cnt = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
@@ -484,6 +487,7 @@ class chromeSession():
             input_container.send_keys(f'{cont}')
             container_enter = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter)
             container_enter.submit()
+            
 
         def select_item() -> bool:
             """Determines whether the given container entered has inventory (passes to the next step)-> True or doesn't and site returns an message -> False"""
@@ -498,17 +502,20 @@ class chromeSession():
             else:
                 cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
                 if f"Container {container} is empty." in cnt_empty_message.text:
+                    print(f'{container}: {cnt_empty_message.text}')
                     return False
-
+            return False
         def select_reason() -> None:
-            """Reason already selected, fucntion simulates form submit"""
+            """Reason already selected, function simulates form submit"""
+            # wait for selection to be present
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.reason.sweeping_out)))
             reason_continue_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.reason.enter)))
             reason_continue_enter.submit()
 
         def confirm_deletion() -> None:
             """Peforms final step in deletion process"""
             #wait for  "confirm the deletion H1"
-            WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
+            WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.reason.reason_statement)))
             confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.confirm.enter)))
             confirm_delete_enter.send_keys(Keys.ENTER)
 
@@ -517,13 +524,18 @@ class chromeSession():
             return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
 
         for _ in range(1):
-            current_state = header.SCAN
+            current_state = ''
             start_over() if get_header_text() != header.SCAN else None
             while current_state != 'end':
+                current_state = get_header_text()
                 if current_state == header.SCAN:
                     try:
                         enter_container(container)
-                        current_state = get_header_text()
+                        if not select_item():
+                            current_state = 'end'
+                        else:
+                            continue
+
 
                     except NoSuchElementException:
                         start_over()
@@ -554,11 +566,10 @@ class chromeSession():
                     if not select_item():
                         current_state = 'end'
                     else:
-                        current_state = get_header_text()
+                        continue
 
                 elif current_state in header.REASON:
                     select_reason()
-                    current_state = get_header_text()
 
                 elif current_state == header.CONFIRM:
                     confirm_deletion()
