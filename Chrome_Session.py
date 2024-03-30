@@ -416,11 +416,6 @@ class chromeSession():
                 coord = element.location_once_scrolled_into_view
                 self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                 # scan container header
-                time.sleep(.5)
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1')))
-                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1')))
-                coord = element.location_once_scrolled_into_view
-                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                 _ = 0
             except TimeoutException:
                 pass
