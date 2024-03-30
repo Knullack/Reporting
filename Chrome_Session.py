@@ -459,22 +459,21 @@ class chromeSession():
     
         def start_over() -> None:
             """Perform the 'start over' action in the 'Menu (m)' selection of the site"""
+            head = get_header_text()
             try:
-                restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.restart)))
-                restart.click()
-                #start over element
-                # wait for popup content
-                time.sleep(.5)
-                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
-                coord = element.location_once_scrolled_into_view
-                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
-                # scan container header
-                time.sleep(.5)
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
-                element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
-                coord = element.location_once_scrolled_into_view
-                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
-                _ = 0
+                if head != header.SCAN:
+                    restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.restart)))
+                    restart.click()
+                    #start over element
+                    # wait for popup content
+                    time.sleep(.5)
+                    element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
+                    coord = element.location_once_scrolled_into_view
+                    self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+                    # scan container header
+                    _ = 0
+                else:
+                    pass
             except TimeoutException:
                 pass
 
@@ -492,6 +491,7 @@ class chromeSession():
         def select_item() -> bool:
             """Determines whether the given container entered has inventory (passes to the next step)-> True or doesn't and site returns an message -> False"""
             #"select item to delete"
+            time.sleep(1.5)
             H1_header =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
             if header.REASON[0] in H1_header or header.REASON[1] in H1_header:
                 continue_enter = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.select.enter))) # continue [enter]
@@ -504,7 +504,7 @@ class chromeSession():
                 if f"Container {container} is empty." in cnt_empty_message.text:
                     print(f'{container}: {cnt_empty_message.text}')
                     return False
-            return False
+                
         def select_reason() -> None:
             """Reason already selected, function simulates form submit"""
             # wait for selection to be present
@@ -518,6 +518,7 @@ class chromeSession():
             WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.reason.reason_statement)))
             confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.confirm.enter)))
             confirm_delete_enter.send_keys(Keys.ENTER)
+            WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN))
 
         def get_header_text() -> str:
             """Gets the text of the header element to derive what step of the process the app is on"""
@@ -525,6 +526,7 @@ class chromeSession():
 
         for _ in range(1):
             current_state = ''
+            time.sleep(.5)
             start_over() if get_header_text() != header.SCAN else None
             while current_state != 'end':
                 current_state = get_header_text()

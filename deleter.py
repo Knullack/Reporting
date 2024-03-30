@@ -9,9 +9,48 @@ if __name__ == "__main__":
     session = chromeSession(12730876)
     session.start()
     containers = [
+        'csXRtM25RbM',
+        'csXRtMZThgM',
+        'csXRtM8bSLL',
+        'csXRtMpXJXL',
+        'csXRtM6h3xx',
+        'csXRtMCTVJg',
+        'csXRtMPFwXg',
+        'csXRtMjlVMx',
+        'csXRtM9Dxgq',
+        'csXRtMS2SfG',
+        'csXTg0P133u',
+        'csXTa0Ox1Nu',
+        'csXPJBKRQM9',
+        'csXRCCn2k67',
+        'csXPJJP6RLS',
+        'csXPJJP6P4M',
+        'csXTH0Q70LI',
+        'csXTV0L6F9C',
+        'csXPJJKCK2B',
+        'csXPJJKGY58',
+        'csXPJH2663F',
+        'csXPJH265TQ',
+        'csXTo0R2j5w',
+        'csXPJHBPJH6',
         'csXTi0Jn5Iy',
+        'csXTj0No4QM',
+        'csXPJJH9TZT',
+        'csXPJJP8M2D',
         'csXTi0Jn5Iy',
-    ]
+        'csXPJHJLY95',
+        'csXPJHFXYYB',
+        'csXPJHFXZFT',
+        'csXRtMm1nML',
+        'csXRtMMSrTZ',
+        'csXPJJKCHNB',
+        'csXPJBKRVLX',
+        'csXTC0Q7c4O',
+        'csXTR0R1j5q',
+        'csXRCC6MP5l',
+        'csXRCCpZgjF',
+        'csXG3c3wbK4'
+]
     qty = len(containers)
     for csX in containers:
         start_time = time()
