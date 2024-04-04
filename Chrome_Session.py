@@ -32,7 +32,12 @@ class locator:
     body = '/html/body'
     nav = '/html/body/nav'
     class xpath:
-
+        class sideline_app:
+            input = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div/div/div/div/div/div[2]/div/div[1]/div/div/div[1]/input'
+            change_container = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[3]/button/div/span'
+            confirmation_yes = '/html/body/div[4]/div/div/div/div[3]/div/div[4]/button/div/span'
+            scan_item_item = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[3]/div/div/div/div/div[1]/div/div/span/span[2]'
+            scan_source_container = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div/div/div/div/div/div[1]/div/div/span/span[2]'
         class counts:
             time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
             iframe = '/html/body/div/iframe'
@@ -65,6 +70,8 @@ class locator:
             inbound = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
             individually_workflow = '/html/body/div/div/div/ul/li[2]'
+            problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
+            sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
 
             class move_container:
                 input = '/html/body/div/div[7]/div/input'
@@ -578,6 +585,32 @@ class chromeSession():
                     print(f"{container} DELETED\n{'-' * 47}")
                     current_state = 'end'
 
+
+    def sideline_delete(self, container):
+        url_sideline = 'https://aft-poirot-website-iad.iad.proxy.amazon.com/'
+        self.navigate(self.driver, url_sideline) if self.driver.current_url != url_sideline else None
+        if self.driver.current_url != url_sideline:
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.problem_solve))).click()
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline_app))).click()
+        
+        def start_over():
+            if WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.sideline_app.scan_source_container))).text == 'source container':
+                pass
+            elif WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.sideline_app.scan_item_item))).text == 'item':
+                self.driver.refresh()
+        def enter_container(csX):
+            input = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
+            input.send_keys(csX)
+            input.send_keys(Keys.ENTER)
+        def change_container():
+            button = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.change_container)))
+            button.click()
+        def confirm():
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmation_yes))).click()
+        start_over()
+        enter_container(container)
+        change_container()
+        confirm()
     def move_container(self, container: str, destination: str) -> None:
         """Moves container with Move Container App"""
         move_URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
