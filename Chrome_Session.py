@@ -38,6 +38,10 @@ class locator:
             confirmation_yes = '/html/body/div[4]/div/div/div/div[3]/div/div[4]/button/div/span'
             scan_item_item = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[3]/div/div/div/div/div[1]/div/div/span/span[2]'
             scan_source_container = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div/div/div/div/div/div[1]/div/div/span/span[2]'
+            source_container = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[2]/span'
+            confirmed = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span'
+            confirmation_div_overlay = '/html/body/div[4]/div/div/div'
+            transshipment_csX_error = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span/span[3]'
         class counts:
             time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
             iframe = '/html/body/div/iframe'
@@ -98,6 +102,9 @@ class locator:
         class counts:
             spinner = 'spinner.large'
 
+        class sideline_app:
+            step = 'text text--bold'
+
 class header:  
     SCAN = 'Scan container'
     SELECT = 'Select item to delete'
@@ -107,6 +114,7 @@ class header:
 class chromeSession():
     def __init__(self, badge: int):
         """Badge for FC Menu login"""
+        self.step = int
         self.driver = None
         self.badge = str(badge)
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
@@ -587,30 +595,72 @@ class chromeSession():
 
 
     def sideline_delete(self, container):
+        STEP = str
         url_sideline = 'https://aft-poirot-website-iad.iad.proxy.amazon.com/'
         self.navigate(self.driver, url_sideline) if self.driver.current_url != url_sideline else None
         if self.driver.current_url != url_sideline:
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.problem_solve))).click()
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline_app))).click()
+
+        def get_step():
+            text =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.source_container))).text
+            if text == "":
+                return 'scan container'
+            elif text == container:
+                text = 'item'
+            return text
         
         def start_over():
-            if WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.sideline_app.scan_source_container))).text == 'source container':
-                pass
-            elif WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.sideline_app.scan_item_item))).text == 'item':
-                self.driver.refresh()
+            self.driver.refresh()
+
         def enter_container(csX):
-            input = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
-            input.send_keys(csX)
-            input.send_keys(Keys.ENTER)
+            if self.step == 0:
+                input = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
+                input.send_keys(csX)
+                input.send_keys(Keys.ENTER)
+                self.step = 1
+            else: pass
         def change_container():
-            button = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.change_container)))
-            button.click()
+            if self.step == 1:
+                button = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.change_container)))
+                button.click()
+                self.step = 2
+            else: pass
         def confirm():
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmation_yes))).click()
+            if self.step == 3:
+                try:
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmation_yes))).click()
+                    WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmed)))
+                    return 'end'
+                except TimeoutException:
+                    self.step = 2
+            else: pass
+        STEP = str
         start_over()
-        enter_container(container)
-        change_container()
-        confirm()
+        self.step = 0
+        while STEP != 'end':
+            time.sleep(.1)
+            try:
+                if self.step == 2:
+                    pass
+                else:
+                    STEP = get_step()
+                if STEP == 'scan container':
+                    enter_container(container)
+                    time.sleep(.2)
+                elif STEP == 'item' or self.step == 2:
+                    change_container()
+                    time.sleep(.2)
+                    self.step = 3
+                    if self.step == 3:
+                        if WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmation_div_overlay))):
+                            STEP = confirm()
+                        else: self.step = 2
+                    else: self.step = 2
+            except TimeoutException:
+                start_over()
+                self.step = 0
+                
     def move_container(self, container: str, destination: str) -> None:
         """Moves container with Move Container App"""
         move_URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
