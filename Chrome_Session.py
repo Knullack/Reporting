@@ -41,7 +41,8 @@ class locator:
             source_container = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[2]/span'
             confirmed = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span'
             confirmation_div_overlay = '/html/body/div[4]/div/div/div'
-            transshipment_csX_error = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span/span[3]'
+            transshipment_csX_error = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div'
+            main_panel = '/html/body/div[1]/div/div/div[2]/div/div[1]'
         class counts:
             time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
             iframe = '/html/body/div/iframe'
@@ -104,6 +105,7 @@ class locator:
 
         class sideline_app:
             step = 'text text--bold'
+            trans_out = 'text text--size-xl text--variant-white'
 
 class header:  
     SCAN = 'Scan container'
@@ -618,7 +620,13 @@ class chromeSession():
                 input = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
                 input.send_keys(csX)
                 input.send_keys(Keys.ENTER)
-                self.step = 1
+                main_panel = self.driver.find_element(By.XPATH, locator.xpath.sideline_app.main_panel)
+                time.sleep(.2)
+                if 'cannot be used because it contains an item bound to Transshipment' in main_panel.text:
+                    self.step = -1
+                else:
+                    self.step = 1
+                
             else: pass
         def change_container():
             if self.step == 1:
@@ -640,6 +648,8 @@ class chromeSession():
         self.step = 0
         while STEP != 'end':
             time.sleep(.1)
+            if self.step == -1:
+                break
             try:
                 if self.step == 2:
                     pass
@@ -653,7 +663,8 @@ class chromeSession():
                     time.sleep(.2)
                     self.step = 3
                     if self.step == 3:
-                        if WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmation_div_overlay))):
+                        overlay = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.confirmation_div_overlay)))
+                        if overlay:
                             STEP = confirm()
                         else: self.step = 2
                     else: self.step = 2
