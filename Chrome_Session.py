@@ -36,12 +36,9 @@ class locator:
             input = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div/div/div/div/div/div[2]/div/div[1]/div/div/div[1]/input'
             change_container = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[3]/button/div/span'
             confirmation_yes = '/html/body/div[4]/div/div/div/div[3]/div/div[4]/button/div/span'
-            scan_item_item = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[3]/div/div/div/div/div[1]/div/div/span/span[2]'
-            scan_source_container = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div/div/div/div/div/div[1]/div/div/span/span[2]'
             source_container = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[2]/span'
             confirmed = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span'
             confirmation_div_overlay = '/html/body/div[4]/div/div/div'
-            transshipment_csX_error = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div'
             main_panel = '/html/body/div[1]/div/div/div[2]/div/div[1]'
         class counts:
             time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
