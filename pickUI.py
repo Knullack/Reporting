@@ -8,14 +8,9 @@ from datetime import datetime
 if __name__ == "__main__":
     session = chromeSession(12730876)
     session.start()
-    session.move_container(300, 'veCG00255', 'dz-F-OB-10')
-    containers = [
-
-    ]
-    qty = len(containers)
-    for csX in containers:
+    for i in range(10):
         start_time = time()
-        session.sideline_delete(csX)
+        csX = session.pickUI('veCG00461', 'paXCG00461')
         elapsed_time = time() - start_time
         if elapsed_time < 60:
             print(f"{datetime.now()} // Runtime: {elapsed_time:.2f} seconds // {csX} DELETED\n{'-' * 47}\n")
