@@ -919,6 +919,7 @@ class chromeSession():
                     enter_container(destination)
                 time.sleep(1.5)
         time.sleep(2)
+        
     def screenshot(self, site, xpath):
         """Screenshot given element at given site"""
         self.driver.maximize_window()
