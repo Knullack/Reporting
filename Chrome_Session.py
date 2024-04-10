@@ -1,27 +1,32 @@
-import importlib
-import logging
-import subprocess
-import sys
-import os
-import csv
-import io
-from PIL import Image
-import time
-import glob
-import time
-import pandas as pd
-from datetime import datetime
-from datetime import datetime, timedelta
-from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver import Chrome
-
-
+try:
+    import importlib
+    import logging
+    import subprocess
+    import sys
+    import os
+    import csv
+    import io
+    from PIL import Image
+    import time
+    import glob
+    import time
+    import pandas as pd
+    from datetime import datetime
+    from datetime import datetime, timedelta
+    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.chrome.options import Options as ChromeOptions
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver import Chrome
+except ImportError as e:
+    missing_module = str(e).split("'")[1]
+    print(f"Module '{missing_module}' is not installed. Installing...")
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', missing_module])
+    print(f"Module '{missing_module}' has been installed. Please restart the script.")
+    sys.exit(1)
 logging.basicConfig(level=logging.ERROR)
 
 SITE = "https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/overview"
@@ -129,6 +134,15 @@ class locator:
         class sideline_app:
             step = 'text text--bold'
             trans_out = 'text text--size-xl text--variant-white'
+
+        class pick:
+            bin = 'greyed-text'
+
+    class ID:
+        
+        class pick:
+            spinner = 'spinner'
+
 
 class header:  
     SCAN = 'Scan container'
@@ -695,9 +709,10 @@ class chromeSession():
 
     def pickUI(self, vehicle: str, cage: str) -> str:
         vehicle_dropoff = 'dz-F-OB-10'
-        self.FCMenu_login(self.badge) if self.driver.current_url == 'http://pickui-hdc3.aka.amazon.com/pick/pick' else None
-        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound))).click()
-        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.picking))).click()
+        if self.driver.current_url == 'http://pickui-hdc3.aka.amazon.com/pick/pick' or self.driver.current_url != 'http://pickui-hdc3.aka.amazon.com/pick/scan_bin':
+            self.FCMenu_login(self.badge)
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound))).click()
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.picking))).click()
         
         def scan(input, container):
             self.driver.execute_script("arguments[0].setAttribute('value', arguments[1])", input, container)
@@ -749,19 +764,38 @@ class chromeSession():
         def switch_to_tab(tab: int):
             self.driver.switch_to.window(self.driver.window_handles[tab])
         
+        def skip_skip():
+            body = self.driver.find_element(By.XPATH, locator.body)
+            body.send_keys('m')
+            time.sleep(1)
+            body.send_keys('s')
+            time.sleep(1)
+            body.send_keys('s')
+            time.sleep(1)
+            body.send_keys(Keys.ENTER)
+
+
         def check_if_pallet():
             P2 = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.pick.scan_bin.P2).text
             time.sleep(1)
             while 'P' in P2:
-                if 'P' in P2:
-                    body = self.driver.find_element(By.XPATH, locator.body)
-                    body.send_keys('m')
-                    time.sleep(3)
-                    body.send_keys('s')
-                    body.send_keys('s')
-                    time.sleep(1)
-                    body.send_keys(Keys.ENTER)
-                P2 = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.pick.scan_bin.P2)))
+                try:
+                    spinner = WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.ID, locator.ID.pick.spinner)))
+                except TimeoutException:
+                    spinner = 'invis'
+                if spinner:
+                    invis_spinner = WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.ID, locator.ID.pick.spinner)))
+                    invis_spinner = 'invis'
+                else:
+                    spinner = 'invis'
+                if invis_spinner == 'invis':
+                    if 'P' in P2:
+                        skip_skip()
+                    try:
+                        P2 = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.pick.scan_bin.P2))).text
+                    except TimeoutException:
+                        P2 = WebDriverWait(self.driver, 30).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.pick.bin)))
+                        P2 = P2[1].text
 
 
         status = bool | str
@@ -791,7 +825,17 @@ class chromeSession():
             switch_to_tab(0)
             scan_cage(cage)
             check_if_pallet()
-            case = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.pick.scan_bin.case))).text
+            case = ''
+            while True:
+                if 'csX' in case:
+                    break
+                try:
+                    case = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.pick.scan_bin.case))).text
+                    break
+                except TimeoutException:
+                    skip_skip()
+                    case = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.pick.scan_bin.case))).text
+
             switch_to_tab(1)
             self.deleteItem(case)
             switch_to_tab(2)
@@ -856,15 +900,18 @@ class chromeSession():
             if workflow == 200:
                 self.navigate(move_URL)
                 enter_container(container)
-                time.sleep(1.2)
+                time.sleep(.5)
                 enter_container(destination)
+                time.sleep(.2)
                 msg = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.error_msg).text
-                if msg in move_fails:
+                print(f'MOVE STATUS: {container} > "{msg}"')
+                if msg in move_fails or msg == '':
+                    input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
                     for i in range(2):
-                        input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
+                        time.sleep(1.2)
                         input.send_keys(Keys.ENTER)
-                        print(f'{container} TRASHED\n')
-                    time.sleep(2)
+                    print(f'{container} TRASHED\n')
+                    time.sleep(.5)
             elif workflow == 300:
                 enter_container(container)
                 for i in range(2):
