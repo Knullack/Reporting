@@ -6,7 +6,7 @@ from time import time
 from datetime import datetime
 
 if __name__ == "__main__":
-    session = chromeSession(12730876)
+    session = chromeSession('hdc3',12730876)
     for i in range(1000):
         start_time = time()
         csX = session.pickUI('veCG00003', 'paXCG00003')
