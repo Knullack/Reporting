@@ -13,7 +13,7 @@ try:
     import pandas as pd
     from datetime import datetime
     from datetime import datetime, timedelta
-    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException
+    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException, NoSuchWindowException
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -29,7 +29,6 @@ except ImportError as e:
     sys.exit(1)
 logging.basicConfig(level=logging.ERROR)
 
-SITE = "https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/overview"
 LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
@@ -151,12 +150,14 @@ class header:
     CONFIRM = 'Confirm the deletion'
 
 class chromeSession():
-    def __init__(self, badge: int):
-        """Badge for FC Menu login"""
+    def __init__(self, site: str, badge: int):
+        """Sideline Shorting, DeleteItems App, PickUI and other ICQA related data scrapping. Use close() method to end chrome process"""
         self.step = int
         self.driver = None
         self.badge = str(badge)
+        self.site = str(site).upper()
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
+        self.start()
 
     def delete_cookie_by_name(self, cookie_name) -> None:
         """Deletes a cookie by name in the Chrome settings."""
@@ -194,13 +195,6 @@ class chromeSession():
                 logging.error(f"Error installing {module_name}: {e}")
                 sys.exit(1)
 
-    def FCMenu_login(self, badge: str) -> None:
-        """Logs into FCMenu with given BADGE"""
-        self.navigate(LOGIN_URL)
-        loginBadge = badge
-        input_element = self.driver.find_element('xpath', locator.xpath.fcmenu.input_badge)
-        self.HELPER_type_and_click(input_element, loginBadge)
-
     def HELPER_type_and_click(self, element: object, text_to_type: str) -> None:
         element.send_keys(text_to_type)
         element.send_keys(Keys.ENTER)
@@ -223,6 +217,7 @@ class chromeSession():
 
     def start(self) -> object:
         """Starts a Chrome browser session"""
+        
         self.install_module('selenium')
         self.port = 9200
         self.launch_chrome_with_remote_debugging(self.port)
@@ -235,6 +230,12 @@ class chromeSession():
         self.driver.implicitly_wait(10)
         self.actions = ActionChains(self.driver)
         self.FCMenu_login(self.badge)
+
+    def FCMenu_login(self, badge: str) -> None:
+        self.navigate(LOGIN_URL)
+        loginBadge = badge
+        input_element = self.driver.find_element('xpath', locator.xpath.fcmenu.input_badge)
+        self.HELPER_type_and_click(input_element, loginBadge)
 
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
@@ -500,11 +501,11 @@ class chromeSession():
         self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
         def get_container(tr):
             """Gets the container from the peculiar inventory site"""
-            cnt = self.get_text('https://peculiar-inventory-na.aka.corp.amazon.com/HDC3/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
+            cnt = self.get_text(f'https://peculiar-inventory-na.aka.corp.amazon.com/{self.site}/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.peculiar_inventory.table_body)))
             # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
             # self.move_container(container, 'TRASH')
-            asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={cnt}', locator.xpath.fcmenu.fcresearch.asin)
+            asin = self.get_text(f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={cnt}', locator.xpath.fcmenu.fcresearch.asin)
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.body)))
             if "B00" in asin or 'X00' in asin:
                 return cnt
@@ -708,11 +709,19 @@ class chromeSession():
                 self.step = 0
 
     def pickUI(self, vehicle: str, cage: str) -> str:
-        vehicle_dropoff = 'dz-F-OB-10'
-        if self.driver.current_url == 'http://pickui-hdc3.aka.amazon.com/pick/pick' or self.driver.current_url != 'http://pickui-hdc3.aka.amazon.com/pick/scan_bin':
-            self.FCMenu_login(self.badge)
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound))).click()
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.picking))).click()
+        vehicle_dropoff = 'veCG00245'
+        if self.driver.current_url == f'http://pickui-{self.site.lower()}.aka.amazon.com/pick/pick' or self.driver.current_url != f'http://pickui-{self.site.lower()}.aka.amazon.com/pick/scan_bin':
+            if self.driver.current_url != f'https://fcmenu-iad-regionalized.corp.amazon.com/{self.site}':
+                self.FCMenu_login()
+            try:
+                outbound = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound)))
+                if outbound.is_displayed():
+                    outbound.click()
+                    WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.picking))).click()
+                else:
+                    raise NoSuchWindowException
+            except NoSuchWindowException as e:
+                print(f"Verify Chrome Window is displayed on-screen, it seems it is not\n\nError:\n{e}")
         
         def scan(input, container):
             self.driver.execute_script("arguments[0].setAttribute('value', arguments[1])", input, container)
@@ -919,7 +928,7 @@ class chromeSession():
                     enter_container(destination)
                 time.sleep(1.5)
         time.sleep(2)
-        
+
     def screenshot(self, site, xpath):
         """Screenshot given element at given site"""
         self.driver.maximize_window()

@@ -7,10 +7,9 @@ from datetime import datetime
 
 if __name__ == "__main__":
     session = chromeSession(12730876)
-    session.start()
-    for i in range(10):
+    for i in range(1000):
         start_time = time()
-        csX = session.pickUI('veCG00461', 'paXCG00461')
+        csX = session.pickUI('veCG00003', 'paXCG00003')
         elapsed_time = time() - start_time
         if elapsed_time < 60:
             print(f"{datetime.now()} // Runtime: {elapsed_time:.2f} seconds // {csX} DELETED\n{'-' * 47}\n")
