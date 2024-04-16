@@ -495,7 +495,9 @@ class chromeSession():
 
 
     def sideline_delete(self, container: str, shorted_container_to_dz: str):
-        """Sideline container shortage & moved to dropzone"""
+        """
+        Short containers via SidelineApp
+        """
         STEP = str
         url_sideline = 'https://aft-poirot-website-iad.iad.proxy.amazon.com/'
         try:
@@ -577,6 +579,11 @@ class chromeSession():
                 self.step = 0
 
     def pickUI(self, vehicle: str, cage: str, dirtyVehicle_dz_location: str, deleted_container_to_dz: str) -> str:
+        """
+        Simulate picker's picking actions followed by deleting the container and moving container to TRASH
+        
+        Ensure DeleteItemsApp is set to container mode. Preferably, set picking eligibilities to csX and not including paX containers
+        """
         vehicle_dropoff = str(dirtyVehicle_dz_location)
         if self.driver.current_url == f'http://pickui-{self.site.lower()}.aka.amazon.com/pick/pick' or self.driver.current_url != f'http://pickui-{self.site.lower()}.aka.amazon.com/pick/scan_bin':
             if self.driver.current_url != f'https://fcmenu-iad-regionalized.corp.amazon.com/{self.site}':
