@@ -6,10 +6,13 @@ from util.utilities import runtime
 if __name__ == "__main__":
     session = chromeSession('hdc3', 12730876)
     containers = [
-
+        'csXDel'
     ]
+    # for i, csX in enumerate(containers, start=1):
+    #     print(f'{i}) {csX} // {runtime(session.unbindHierarchy, csX)}')
+    # for i, csX in enumerate(containers, start=1):
+    #     print(f'{i}) {csX} // {runtime(session.sideline_delete, csX, 'TRASH')}')
     for i, csX in enumerate(containers, start=1):
-        print(f'{i}) {csX} // {runtime(session.unbindHierarchy, csX)}')
-    for i, csX in enumerate(containers, start=1):
-        print(f'{i}) {csX} // {runtime(session.sideline_delete, csX, 'TRASH')}')
+        print(f'{i}) {csX} // {runtime(session.deleteItem, csX ,'container')}')
+
     session.close()
