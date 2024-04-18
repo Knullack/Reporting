@@ -22,7 +22,7 @@ try:
     from selenium.webdriver.common.by import By
     from selenium.webdriver import Chrome
     from selenium.webdriver.remote.webelement import WebElement
-
+    from typing import Literal
     from util.utilities import locator, header, constants
 except ImportError as e:
     missing_module = str(e).split("'")[1]
@@ -359,8 +359,9 @@ class chromeSession():
             case 6: # sunday
                 return 0
 
-    def deleteItem(self, container: str):
+    def deleteItem(self, container: str, mode: Literal['container', 'single']):
         """Uses DeleteItemsApp to 'delete' the container"""
+        mode = mode.lower()
         self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
         def get_container(tr):
             """Gets the container from the peculiar inventory site"""
@@ -372,14 +373,41 @@ class chromeSession():
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.body)))
             if "B00" in asin or 'X00' in asin:
                 return cnt
-    
+
+        def set_mode(mode):
+            current_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.modes.current_mode))).text.lower()
+            
+            def click_menu():
+                WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.menu))).click()
+
+            def click_change_mode():
+                time.sleep(1)
+                change_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_change_mode)))
+                coord = change_mode.location_once_scrolled_into_view
+                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+            
+            def click_mode(mode_):
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.modes.select_modes_banner)))
+                if mode_ == 'single':
+                    WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.modes.single))).click()
+                elif mode_ == 'container':
+                    WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.modes.container))).click()
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.modes.continue_enter))).click()
+            
+            if current_mode == mode:
+                pass
+            else:
+                click_menu()
+                click_change_mode()
+                click_mode(mode)
+                
         def start_over() -> None:
             """Perform the 'start over' action in the 'Menu (m)' selection of the site"""
             head = get_header_text()
             try:
                 if head != header.SCAN:
-                    restart = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.restart)))
-                    restart.click()
+                    menu = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.menu)))
+                    menu.click()
                     #start over element
                     # wait for popup content
                     time.sleep(.5)
@@ -440,6 +468,7 @@ class chromeSession():
             """Gets the text of the header element to derive what step of the process the app is on"""
             return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
 
+        set_mode(mode)
         for _ in range(1):
             current_state = ''
             time.sleep(.5)
@@ -893,4 +922,3 @@ class chromeSession():
         goto_UI()
         enter_container(container)
         continueC()
-        a= 0
