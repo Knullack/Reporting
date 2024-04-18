@@ -1,4 +1,5 @@
 try:
+    import keyboard
     import importlib
     import logging
     import subprocess
@@ -736,10 +737,18 @@ class chromeSession():
     def PAWS_tradional_picking(self):
         site = 'https://taskui-gateway-iad.corp.amazon.com/?listingID=97fc5f2d-c627-46cb-afa0-7026e28e34fe&hideTasks=1&messaging=1&fans=1&interrupts=true&training=true&logoutWorkflowEnabled=1&skipTaskCenter=1#initialized'
         self.navigate(site)
-        body = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.body)))
+        # body = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html')))
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.PAWS_Traditional_Picking.no_batch))).click()
-        body.send_keys('veCG00201')
-        body.send_keys('veCG00201')
+        step = WebDriverWait(self.driver, 30).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div[2]/div/div[1]/div/div[1]/div'), 'Scan vehicle ID'))
+        # body.send_keys('veCG00201')
+        # body.send_keys('veCG00201') 
+        if step:   
+            text = 'veCG00201'
+            for char in text:
+                keyboard.press(char)
+                time.sleep(0.1)  # Adjust the delay as needed
+                keyboard.release(char)
+            a = 0
         
 
     def move_container(self, workflow: int, container: str, destination: str) -> None:
@@ -751,7 +760,7 @@ class chromeSession():
             # Lands at FC Menu - does not navigate - reason unknown
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.inbound))).click() # inbound
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container_145))).click() # move container (145)
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.individually_workflow))).click() # move container individually
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.individually_workflow))).click() # move container individually
         ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
 
         def enter_container(container_):
@@ -830,3 +839,53 @@ class chromeSession():
             img.save(f"image-{t}.png")
         except NoSuchElementException as e:
             logging.error(f"Element not found for site '{site}' with XPath '{xpath}': {e}")
+
+    def unbindHierarchy(self, container):
+        def goto_UI():
+            if self.driver.current_url != 'https://tx-b-hierarchy-iad.iad.proxy.amazon.com/unbindHierarchy':
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound))).click()
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbindHierarchy))).click()
+        
+        def enter_container(container_):
+            try:
+                body = self.driver.find_element(By.XPATH, locator.body)
+            except UnexpectedAlertPresentException:
+                try:
+                    alert = self.driver.switch_to.alert
+                    alert.accept()
+                except NoAlertPresentException:
+                    self.driver.refresh()
+                    try:
+                        body = self.driver.find_element(By.XPATH, locator.body)
+                    except UnexpectedAlertPresentException:
+                        try:
+                            alert = self.driver.switch_to.alert
+                            alert.accept()
+                        except NoAlertPresentException:
+                            pass
+            try:
+                body.send_keys('t')
+            except UnboundLocalError:
+                body = self.driver.find_element(By.XPATH, locator.body)
+                body.send_keys('t')
+            try:
+                input = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.input)))
+                input.clear()
+            except ElementNotInteractableException:
+                body.send_keys('t')
+                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
+
+            if input.is_displayed():
+                input.click()
+                input.send_keys(container_)
+                input.send_keys(Keys.ENTER)
+        
+        def continueC():
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
+            # Wait for success output
+            WebDriverWait(self.driver, 60).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
+        
+        goto_UI()
+        enter_container(container)
+        continueC()
+        a= 0

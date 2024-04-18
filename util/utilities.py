@@ -69,11 +69,16 @@ class locator:
             outbound = '/html/body/div[3]/div/div[2]/ul[1]/li[2]/a'
             picking = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
-            individually_workflow = '/html/body/div/div/div/ul/li[2]'
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
-
+            unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            
+            class unbind:
+                input = '/html/body/div[2]/div/input'
+                continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
+                success_banner = '/html/body/div[1]/div[3]/div/div[2]/span[1]'
             class move_container:
+                individually_workflow = '/html/body/div/div/div/ul/li[2]'
                 input = '/html/body/div/div[7]/div/input'
                 error_msg = '/html/body/div/div[4]/div[2]/div[1]'
             class peculiar_inventory:
