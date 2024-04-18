@@ -8,7 +8,14 @@
             "name": "main.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "C:\\Users\\nuneadon.ANT\\Documents\\Code\\Reporting\\deleter.py",
+            "program": "deleter.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "pickUI.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "pickUI.py",
             "console": "integratedTerminal"
         }
     ]

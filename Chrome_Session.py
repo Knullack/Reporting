@@ -881,10 +881,15 @@ class chromeSession():
                 input.send_keys(Keys.ENTER)
         
         def continueC():
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
-            # Wait for success output
-            WebDriverWait(self.driver, 60).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
-        
+            try:
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
+                # Wait for success output
+                WebDriverWait(self.driver, 60).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
+            except ElementNotInteractableException:
+                if WebDriverWait(self.driver, 1).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.error_banner),'Error getting the binding summary. Please scan again')):
+                    self.driver.refresh()
+                    enter_container(container)
+                    continueC()
         goto_UI()
         enter_container(container)
         continueC()
