@@ -77,6 +77,7 @@ class locator:
                 input = '/html/body/div[2]/div/input'
                 continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
                 success_banner = '/html/body/div[1]/div[3]/div/div[2]/span[1]'
+                error_banner = '/html/body/div[1]/div[5]/div[2]/div[2]'
             class move_container:
                 individually_workflow = '/html/body/div/div/div/ul/li[2]'
                 input = '/html/body/div/div[7]/div/input'
