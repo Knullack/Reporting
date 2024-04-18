@@ -6,8 +6,10 @@ from util.utilities import runtime
 if __name__ == "__main__":
     session = chromeSession('hdc3', 12730876)
     containers = [
-        
+
     ]
-    for csX in containers:
-        print(f'{csX} // {runtime(session.sideline_delete, csX, "TRASH")}')
+    for i, csX in enumerate(containers, start=1):
+        print(f'{i}) {csX} // {runtime(session.unbindHierarchy, csX)}')
+    for i, csX in enumerate(containers, start=1):
+        print(f'{i}) {csX} // {runtime(session.sideline_delete, csX, 'TRASH')}')
     session.close()
