@@ -46,10 +46,17 @@ class locator:
             okay = '/html/body/div[4]/div/div/div[2]/button[2]'
 
         class delete:
+            
             H1_header = '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'
-            restart = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
+            menu = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
             btn_restart = '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1'
-
+            btn_change_mode = '/html/body/div[4]/div/div/div/div[1]/div[3]/span/div/div/div/div[1]/h1'
+            class modes:
+                current_mode = '/html/body/div[1]/div[4]/div/div[1]/div/dl/dd'
+                single = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[1]/div/div/label/i'
+                container = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[2]/div/div/label/i'
+                continue_enter = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/span/span/input'
+                select_modes_banner = '/html/body/div[1]/div[5]/div/div[2]/div[1]/div/div/h1'
             class scan:
                 input = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'
