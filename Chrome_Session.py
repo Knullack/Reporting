@@ -493,7 +493,6 @@ class chromeSession():
             start_over() if get_header_text() != header.SCAN else None
             while current_state != 'end':
                 current_state = get_header_text()
-                print(current_state.upper())
                 if current_state == header.SCAN:
                     try:
                         enter_container(container)
