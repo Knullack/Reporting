@@ -13,7 +13,7 @@ try:
     import time
     import pandas as pd
     from datetime import datetime, timedelta
-    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException, NoSuchWindowException, ElementNotInteractableException
+    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException, NoSuchWindowException, ElementNotInteractableException, MoveTargetOutOfBoundsException
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -359,7 +359,7 @@ class chromeSession():
             case 6: # sunday
                 return 0
 
-    def deleteItem(self, container: str, mode: Literal['container', 'single']):
+    def deleteItem(self, container: str, mode: Literal['container', 'single'], *arg):
         """Uses DeleteItemsApp to 'delete' the container"""
         mode = mode.lower()
         self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
@@ -400,7 +400,7 @@ class chromeSession():
                 click_menu()
                 click_change_mode()
                 click_mode(mode)
-                
+
         def start_over() -> None:
             """Perform the 'start over' action in the 'Menu (m)' selection of the site"""
             head = get_header_text()
@@ -411,9 +411,13 @@ class chromeSession():
                     #start over element
                     # wait for popup content
                     time.sleep(.5)
-                    element = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
-                    coord = element.location_once_scrolled_into_view
-                    self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+                    try:
+                        restart = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
+                        coord = restart.location_once_scrolled_into_view
+                        self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+                    except MoveTargetOutOfBoundsException:
+                        self.driver.find_element(By.XPATH, locator.body).send_keys('r')
+
                     # scan container header
                     _ = 0
                 else:
@@ -432,7 +436,7 @@ class chromeSession():
             container_enter.submit()
             
 
-        def select_item() -> bool:
+        def select_item() -> bool | str:
             """Determines whether the given container entered has inventory (passes to the next step)-> True or doesn't and site returns an message -> False"""
             #"select item to delete"
             time.sleep(1.5)
@@ -442,6 +446,16 @@ class chromeSession():
                 continue_enter.submit()
                 time.sleep(1)
                 return True
+            elif header.SELECT in H1_header:
+                boxes = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.XPATH, locator.xpath.delete.fieldset)))
+                if arg:
+                    for box in boxes:
+                        path = box.get_attribute('xpath')
+                        skuXPath = locator.xpath
+                        sku = self.driver.find_element(By.XPATH, f"{box.get_attribute('xpath')}{locator.class_name.delete.fnsku}").text
+                        if sku == arg:
+                            return arg
+                    return False
             # container empty message
             else:
                 cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
@@ -452,7 +466,7 @@ class chromeSession():
         def select_reason() -> None:
             """Reason already selected, function simulates form submit"""
             # wait for selection to be present
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.reason.sweeping_out)))
+            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.reason.sweeping_out)))
             reason_continue_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.reason.enter)))
             reason_continue_enter.submit()
 
@@ -466,15 +480,20 @@ class chromeSession():
 
         def get_header_text() -> str:
             """Gets the text of the header element to derive what step of the process the app is on"""
-            return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
+            try:
+                return WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
+            except Exception:
+                self.driver.refresh()
+                return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
 
         set_mode(mode)
         for _ in range(1):
             current_state = ''
-            time.sleep(.5)
+            time.sleep(.8)
             start_over() if get_header_text() != header.SCAN else None
             while current_state != 'end':
                 current_state = get_header_text()
+                print(current_state.upper())
                 if current_state == header.SCAN:
                     try:
                         enter_container(container)
@@ -482,8 +501,7 @@ class chromeSession():
                             current_state = 'end'
                         else:
                             continue
-
-
+                        
                     except NoSuchElementException:
                         start_over()
 
@@ -516,13 +534,18 @@ class chromeSession():
                         continue
 
                 elif current_state in header.REASON:
-                    select_reason()
+                    try:
+                        select_reason()
+                    except Exception:
+                        continue
 
                 elif current_state == header.CONFIRM:
-                    confirm_deletion()
-                    print(f"{container} DELETED\n{'-' * 47}")
-                    current_state = 'end'
-
+                    try:
+                        confirm_deletion()
+                        print(f"{container} DELETED\n{'-' * 47}")
+                        current_state = 'end'
+                    except Exception:
+                        continue
 
     def sideline_delete(self, container: str, shorted_container_to_dz: str):
         """Sideline container shortage & moved to dropzone"""
