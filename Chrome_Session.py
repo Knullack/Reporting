@@ -417,7 +417,7 @@ class chromeSession():
                         self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                     except MoveTargetOutOfBoundsException:
                         self.driver.find_element(By.XPATH, locator.body).send_keys('r')
-
+                    WebDriverWait(self.driver, 5).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN))
                     # scan container header
                     _ = 0
                 else:
@@ -427,7 +427,6 @@ class chromeSession():
 
         def enter_container(cont) -> None:
             """Types in the given container in the input field"""
-            self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')
             input_container = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.input)
             input_container.click()
 
@@ -436,7 +435,7 @@ class chromeSession():
             container_enter.submit()
             
 
-        def select_item() -> bool | str:
+        def select_item() -> bool:
             """Determines whether the given container entered has inventory (passes to the next step)-> True or doesn't and site returns an message -> False"""
             #"select item to delete"
             time.sleep(1.5)
@@ -447,15 +446,22 @@ class chromeSession():
                 time.sleep(1)
                 return True
             elif header.SELECT in H1_header:
-                boxes = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.XPATH, locator.xpath.delete.fieldset)))
-                if arg:
-                    for box in boxes:
-                        path = box.get_attribute('xpath')
-                        skuXPath = locator.xpath
-                        sku = self.driver.find_element(By.XPATH, f"{box.get_attribute('xpath')}{locator.class_name.delete.fnsku}").text
-                        if sku == arg:
-                            return arg
-                    return False
+                field = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.XPATH, locator.xpath.delete.select.fieldset)))
+                boxes = []
+                # boxes = self.driver.find_elements(By.XPATH, "/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/fieldset//div[@class='a-box']")
+                for box in field:
+                    item = box.find_elements(By.XPATH, "./div")
+                    boxes.extend(item)
+                for j, box in enumerate(boxes, start=1):
+                    # print(box.text)
+                    lines = box.text.split('\n')
+                    for i, line in enumerate(lines, start=1):
+                        if "FcSku:" in line:
+                            if lines[i] == arg[0] and i + 1 < len(lines):
+                                    self.actions.click(boxes[j-1]).perform()
+                                    self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.enter).submit()
+                                    return True
+                            break
             # container empty message
             else:
                 cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
