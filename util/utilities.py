@@ -150,6 +150,7 @@ class locator:
             trans_out = 'text text--size-xl text--variant-white'
 
         class pick:
+            no_batch = 'button button--size-md button--variant-secondary button--fluid'
             bin = 'greyed-text'
 
     class ID:
