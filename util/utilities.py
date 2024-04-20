@@ -46,7 +46,6 @@ class locator:
             okay = '/html/body/div[4]/div/div/div[2]/button[2]'
 
         class delete:
-            fieldset = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/fieldset'
             H1_header = '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'
             menu = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
             btn_restart = '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1'
@@ -61,6 +60,8 @@ class locator:
                 input = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'
             class select:
+                fieldset = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/fieldset'
+                boxSku = 'div/div/div/label/span/div[2]/div/div[2]/div[2]/div[2]/div[1]/dl/dd[1]'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'
                 container_empty = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div'
             class reason:
@@ -138,7 +139,6 @@ class locator:
     class class_name:
         class delete:
             enter = 'a-button-input'
-            fnsku = '/div/div/label/span/div/div/div/div[2]/div[2]/div[1]/dl/dd[1]'
             box = 'a-box'
             fielset = 'a-box-group a-form-control-group'
 
