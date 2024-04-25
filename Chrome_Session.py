@@ -830,7 +830,7 @@ class chromeSession():
             a = 0
         
 
-    def move_container(self, workflow: int, container: str, destination: str) -> None:
+    def move_container(self, workflow: Literal[200, 300], container: str, destination: str) -> None:
         """Moves container with Move Container App"""
         move_fails = ['Move was unsuccessful']
         move_URL = f'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId={workflow}'
