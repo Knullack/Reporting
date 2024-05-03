@@ -57,6 +57,7 @@ class locator:
                 continue_enter = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/span/span/input'
                 select_modes_banner = '/html/body/div[1]/div[5]/div/div[2]/div[1]/div/div/h1'
             class scan:
+                scan_item = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/input'
                 input = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'
             class select:
@@ -71,6 +72,14 @@ class locator:
             class confirm:
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'
 
+        class moveItems:
+            
+            H1_header = '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'
+            class modes:
+                each = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[1]/div/div/label/span/h1'
+                multi = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[2]/div/div/label/span/h1'
+                container = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[3]/div/div/label/span/h1'
+            
         class fcmenu:
             input_badge = '//*[@id="badgeBarcodeId"]'
             inbound = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
@@ -94,6 +103,8 @@ class locator:
                 table_body = '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody'
 
             class fcresearch:
+                table = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table"
+                title_row = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[2]/th"
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
 
             class pickUI:
@@ -140,8 +151,14 @@ class locator:
         class delete:
             enter = 'a-button-input'
             box = 'a-box'
-            fielset = 'a-box-group a-form-control-group'
+            fielset = 'a-box-group a-spacing-base'
 
+            class select:
+                continue_enter = 'a-button-inner'
+        
+        class move_items:
+            fieldset = 'a-box-group a-form-control-group'
+            
         class counts:
             spinner = 'spinner.large'
 
@@ -159,8 +176,10 @@ class locator:
             spinner = 'spinner'
 
 class header:  
-    SCAN = 'Scan container'
-    SELECT = 'Select item to delete'
+    SCAN = ['Scan container', 'Scan item']
+    SELECT = ['Select item to delete', 'Scan item', 'Select item']
+    QUANTITY = ['Enter quantity']
+    DESTINATION_CONTAINER = ['Scan destination container']
     REASON = ['Select reason to delete','Select deletion reason']
     CONFIRM = 'Confirm the deletion'
 
