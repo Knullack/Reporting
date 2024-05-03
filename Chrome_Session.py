@@ -470,36 +470,40 @@ class chromeSession():
                     nonlocal FcSKU_count
                     FcSKU_count = len(boxes)
                     print(f"FcSKUs: {FcSKU_count}")
-                    if FcSKU_count > 1:
-                        for i, box in enumerate(boxes):
-                            lines = box.text.splitlines()
-                            for line in lines:
-                                if line == name:
-                                    try:
-                                        boxes[i].click()
-                                    except StaleElementReferenceException:
-                                        retries = 3
-                                        for _ in range(retries):
-                                            try:
-                                                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, locator.class_name.delete.enter)))
-                                                confirm_enter.click()
+                    try:
+                        if FcSKU_count > 1:
+                            for i, box in enumerate(boxes):
+                                lines = box.text.splitlines()
+                                for line in lines:
+                                    if line == name:
+                                        try:
+                                            boxes[i].click()
+                                        except StaleElementReferenceException:
+                                            retries = 3
+                                            for _ in range(retries):
+                                                try:
+                                                    confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, locator.class_name.delete.enter)))
+                                                    confirm_enter.click()
 
-                                                #wait for "Scan container" H1
-                                                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
-                                                continue
-                                            except StaleElementReferenceException:
-                                                continue
-                                    try:
-                                        self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
-                                    except StaleElementReferenceException:
-                                        self.driver.refresh()
-                                        self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
-                                        
-                                    return True
-                    else:
+                                                    #wait for "Scan container" H1
+                                                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
+                                                    continue
+                                                except StaleElementReferenceException:
+                                                    continue
+                                        try:
+                                            self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                                        except StaleElementReferenceException:
+                                            self.driver.refresh()
+                                            self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                                            
+                                        return True
+                        else: # FcSKU_count < 0
+                            self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                            return True
+                    except StaleElementReferenceException:
+                        self.driver.refresh()
                         self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
-                        return True
-                else:
+                else: # no title
                     self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
                     return True
             else: # container empty message
