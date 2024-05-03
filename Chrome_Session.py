@@ -362,8 +362,9 @@ class chromeSession():
             case 6: # sunday
                 return 0
 
-    def deleteItem(self, container: str, mode: Literal['container', 'single'], *arg):
+    def deleteItem(self, container: str, mode: Literal['container', 'single'], *arg, **title):
         """Uses DeleteItemsApp to 'delete' the container"""
+        FcSKU_count = 0
         mode = mode.lower()
         self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
         def get_container(tr):
@@ -408,7 +409,7 @@ class chromeSession():
             """Perform the 'start over' action in the 'Menu (m)' selection of the site"""
             head = get_header_text()
             try:
-                if head != header.SCAN:
+                if head not in header.SCAN[0]:
                     menu = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.menu)))
                     menu.click()
                     #start over element
@@ -420,7 +421,7 @@ class chromeSession():
                         self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                     except MoveTargetOutOfBoundsException:
                         self.driver.find_element(By.XPATH, locator.body).send_keys('r')
-                    WebDriverWait(self.driver, 5).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN))
+                    WebDriverWait(self.driver, 5).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN[0]))
                     # scan container header
                     _ = 0
                 else:
@@ -437,36 +438,71 @@ class chromeSession():
             container_enter = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter)
             container_enter.submit()
             
+        def enter_item(item) -> bool:
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.scan.scan_item))).send_keys(item)
+            self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter).click() # container empty message
+            try:
+                cnt_empty_message = WebDriverWait(self.driver, 1).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
+                if "not in the container." in cnt_empty_message.text:
+                    print(f'{container}: {cnt_empty_message.text}')
+                    return False
+                else: return True
+            except TimeoutException:
+                return True
 
         def select_item() -> bool:
             """Determines whether the given container entered has inventory (passes to the next step)-> True or doesn't and site returns an message -> False"""
             #"select item to delete"
-            time.sleep(1.5)
+            time.sleep(1.5) if get_header_text() not in header.SELECT else None
             H1_header =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
             if header.REASON[0] in H1_header or header.REASON[1] in H1_header:
                 continue_enter = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.select.enter))) # continue [enter]
                 continue_enter.submit()
                 time.sleep(1)
                 return True
-            elif header.SELECT in H1_header:
-                field = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.XPATH, locator.xpath.delete.select.fieldset)))
-                boxes = []
-                # boxes = self.driver.find_elements(By.XPATH, "/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/fieldset//div[@class='a-box']")
-                for box in field:
-                    item = box.find_elements(By.XPATH, "./div")
-                    boxes.extend(item)
-                for j, box in enumerate(boxes, start=1):
-                    # print(box.text)
-                    lines = box.text.split('\n')
-                    for i, line in enumerate(lines, start=1):
-                        if "FcSku:" in line:
-                            if lines[i] == arg[0] and i + 1 < len(lines):
-                                    self.actions.click(boxes[j-1]).perform()
-                                    self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.enter).submit()
+            elif H1_header == header.SCAN[1]:
+                return enter_item(arg)
+            elif H1_header in header.SELECT[0]:
+                if title:
+                    name = title['title']
+                    fieldset = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.fieldset)))
+                    boxes = fieldset.find_elements(By.XPATH, "./div")
+                    nonlocal FcSKU_count
+                    FcSKU_count = len(boxes)
+                    print(f"FcSKUs: {FcSKU_count}")
+                    if FcSKU_count > 1:
+                        for i, box in enumerate(boxes):
+                            lines = box.text.splitlines()
+                            for line in lines:
+                                if line == name:
+                                    try:
+                                        boxes[i].click()
+                                    except StaleElementReferenceException:
+                                        retries = 3
+                                        for _ in range(retries):
+                                            try:
+                                                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, locator.class_name.delete.enter)))
+                                                confirm_enter.click()
+
+                                                #wait for "Scan container" H1
+                                                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
+                                                continue
+                                            except StaleElementReferenceException:
+                                                continue
+                                    try:
+                                        self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                                    except StaleElementReferenceException:
+                                        self.driver.refresh()
+                                        self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                                        
                                     return True
-                            break
-            # container empty message
-            else:
+                    else:
+                        self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                        return True
+                else:
+                    self.driver.find_element(By.CLASS_NAME, locator.class_name.delete.select.continue_enter).click()
+                    return True
+            else: # container empty message
                 cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
                 if f"Container {container} is empty." in cnt_empty_message.text:
                     print(f'{container}: {cnt_empty_message.text}')
@@ -485,7 +521,11 @@ class chromeSession():
             WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.reason.reason_statement)))
             confirm_delete_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.confirm.enter)))
             confirm_delete_enter.send_keys(Keys.ENTER)
-            WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN))
+            time.sleep(1.5)
+            if get_header_text() == header.SELECT[0]:
+                pass
+            else:
+                WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN[0]))
 
         def get_header_text() -> str:
             """Gets the text of the header element to derive what step of the process the app is on"""
@@ -499,10 +539,11 @@ class chromeSession():
         for _ in range(1):
             current_state = ''
             time.sleep(.8)
-            start_over() if get_header_text() != header.SCAN else None
+            start_over() if get_header_text() != header.SCAN[0] else None
             while current_state != 'end':
+                time.sleep(1)
                 current_state = get_header_text()
-                if current_state == header.SCAN:
+                if current_state == header.SCAN[0]:
                     try:
                         enter_container(container)
                         if not select_item():
@@ -534,8 +575,12 @@ class chromeSession():
 
                     except ElementClickInterceptedException:
                         start_over()
-
-                elif current_state == header.SELECT:
+                elif current_state == header.SCAN[1]:
+                    if not select_item():
+                            current_state = 'end'
+                    else:
+                        continue
+                elif current_state in header.SELECT:
                     if not select_item():
                         current_state = 'end'
                     else:
@@ -550,10 +595,219 @@ class chromeSession():
                 elif current_state == header.CONFIRM:
                     try:
                         confirm_deletion()
+                        if FcSKU_count > 1:
+                            current_state = header.SELECT[0]
+                            continue
                         print(f"{container} DELETED\n{'-' * 47}")
+                        start_over()
                         current_state = 'end'
                     except Exception:
                         continue
+
+    def move_items(self, mode: Literal['each', 'multi','container'], container: str, item: str, destination: str) -> None:
+        mode = mode.lower()
+        self.navigate('https://aft-qt-na.aka.amazon.com/app/moveitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
+
+        def start_over() -> None:
+            """Perform the 'start over' action in the 'Menu (m)' selection of the site"""
+            head = get_header_text()
+            try:
+                if head != header.SCAN[0]:
+                    menu = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.menu)))
+                    menu.click()
+                    #start over element
+                    # wait for popup content
+                    time.sleep(.5)
+                    try:
+                        restart = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
+                        coord = restart.location_once_scrolled_into_view
+                        self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+                    except MoveTargetOutOfBoundsException:
+                        self.driver.find_element(By.XPATH, locator.body).send_keys('r')
+                    WebDriverWait(self.driver, 5).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.H1_header), header.SCAN[0]))
+                    # scan container header
+                    _ = 0
+                else:
+                    pass
+            except TimeoutException:
+                pass
+        def get_header_text() -> str:
+            """Gets the text of the header element to derive what step of the process the app is on"""
+            try:
+                return WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
+            except Exception:
+                self.driver.refresh()
+                return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header))).text
+        def set_mode(mode):
+            current_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.modes.current_mode))).text.lower()
+            
+            def click_menu():
+                WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.delete.menu))).click()
+
+            def click_change_mode():
+                time.sleep(1)
+                change_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_change_mode)))
+                coord = change_mode.location_once_scrolled_into_view
+                self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
+            
+            def click_mode(mode_):
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.modes.select_modes_banner)))
+                if mode_ == 'each':
+                    WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.moveItems.modes.each))).click()
+                elif mode_ == 'multi':
+                    WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.moveItems.modes.multi))).click()
+                elif mode == 'container':
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.moveItems.modes.container))).click()
+                
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.modes.continue_enter))).click()
+            
+            if current_mode == mode:
+                pass
+            else:
+                click_menu()
+                click_change_mode()
+                click_mode(mode)
+
+        def enter_container(cont) -> None:
+            """Types in the given container in the input field"""
+            input_container = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.input)
+            input_container.click()
+
+            input_container.send_keys(f'{cont}')
+            container_enter = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter)
+            container_enter.submit()
+        
+        def enter_item(item) -> bool | int:
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.scan.scan_item))).send_keys(item)
+            self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter).click()
+            
+            def check_if_multiple_item_selections():
+                try:
+                    count = 0
+                    selection_list = WebDriverWait(self.driver, 1).until(EC.presence_of_all_elements_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/fieldset')))
+                    for line in selection_list[0].text:
+                        if line == "Title":
+                            count += 1
+                    a = count
+                except TimeoutException:
+                    try:
+                        cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.select.container_empty)))
+                        if f"Item {item} not in container" in cnt_empty_message.text:
+                            print(f'{container}: {cnt_empty_message.text}')
+                            return False
+                    except TimeoutException:
+                        return True
+
+                if len(boxes) <= 1:
+                    return False
+                elif len(boxes) >= 1:
+                    return len(boxes)
+
+
+            def check_if_not_in_container():
+                head = get_header_text()
+                try:
+                    if head in header.SCAN:
+                        try:
+                            cnt_empty_message = WebDriverWait(self.driver, timeout=1, poll_frequency=0.1).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.delete.select.container_empty), f"Item {item} not in container"))
+                            if cnt_empty_message:
+                                return 
+                        except TimeoutException:
+                            result = check_if_multiple_item_selections()
+                            self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter).click()
+                            return result
+                    elif head in header.SELECT[2]:
+                            result = check_if_multiple_item_selections()
+                            self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter).click()
+                            return result
+
+
+                except TimeoutException:
+                    return True
+            return check_if_not_in_container()
+            # check if item in container
+                    
+
+        def num_of_items() -> int:
+            fieldset = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.move_items.fieldset)))
+            return len(fieldset)
+        def enter_quantity() -> None:
+            qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[1]/div/dl[3]/dd[4]'))).text
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'))).send_keys(qty)
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'))).click()
+        def enter_destination() -> None:
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'))).send_keys(destination)
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'))).click()
+
+        set_mode(mode)
+        for _ in range(1):
+            current_state = ''
+            time.sleep(.8)
+            start_over() if get_header_text() not in header.SCAN[0] else None
+            while current_state != 'end':
+                current_state = get_header_text()
+                if current_state == header.SCAN[0]:
+                    try:
+                        enter_container(container)
+                        time.sleep(1)
+                    except NoSuchElementException:
+                        start_over()
+
+                    except StaleElementReferenceException:
+                        retries = 3
+                        for _ in range(retries):
+                            try:
+                                confirm_enter = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, locator.class_name.delete.enter)))
+                                confirm_enter.click()
+
+                                #wait for "Scan container" H1
+                                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.H1_header)))
+                                break
+                            except StaleElementReferenceException:
+                                continue
+                        else:
+                            print("All attempts failed.")
+                            start_over()
+
+                    except TimeoutException:
+                        start_over()
+
+                    except ElementClickInterceptedException:
+                        start_over()
+
+                elif current_state in header.SCAN[1]:
+                    result = enter_item(item)
+                    if isinstance(result, bool) and not result or result == None:
+                        current_state = 'end'
+                    elif isinstance(result, int):
+                        _ = 0
+                        
+                
+                elif current_state in header.QUANTITY:
+                    time.sleep(1)
+                    enter_quantity()
+                elif current_state in header.DESTINATION_CONTAINER:
+                    time.sleep(1)
+                    enter_destination()
+                    current_state = 'end'
+
+    def rodeo_delete(self, scannable_id: str, FN_SKU: str):
+        """Delete items from rodeo"""
+        
+        def get_title(sku: str) -> str: 
+            self.navigate(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={sku}')
+            try:
+                table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.table)))
+                rows = table.find_elements(By.XPATH, "//tr")
+
+                for row in rows:
+                    if "Title" in row.text:
+                        return row.text.split("Title ", 1)[1]
+            except TimeoutException:
+                return ''
+
+        self.deleteItem(scannable_id, 'single', FN_SKU, title=get_title(FN_SKU))
+        
 
     def sideline_delete(self, container: str, shorted_container_to_dz: str):
         """Sideline container shortage & moved to dropzone"""
