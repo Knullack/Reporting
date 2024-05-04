@@ -432,7 +432,6 @@ class chromeSession():
                         restart = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.btn_restart)))
                         coord = restart.location_once_scrolled_into_view
                         self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
-                        print('clicked')
                     except MoveTargetOutOfBoundsException:
                         self.driver.find_element(By.XPATH, locator.body).send_keys('r')
                     wait_for_processing()
