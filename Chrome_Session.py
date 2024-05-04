@@ -379,8 +379,8 @@ class chromeSession():
 
         def wait_for_processing():
             try:
-                WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element_attribute((By.XPATH, locator.xpath.delete.processing_element), 'class', locator.class_name.itemApps.processing_visible))
-                WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element_attribute((By.XPATH, locator.xpath.delete.processing_element), 'class', locator.class_name.itemApps.processing_hidden))
+                WebDriverWait(self.driver, 3).until(EC.text_to_be_present_in_element_attribute((By.XPATH, locator.xpath.delete.processing_element), 'class', locator.class_name.itemApps.processing_visible))
+                WebDriverWait(self.driver, 3).until(EC.text_to_be_present_in_element_attribute((By.XPATH, locator.xpath.delete.processing_element), 'class', locator.class_name.itemApps.processing_hidden))
             except TimeoutException:
                 pass
 
