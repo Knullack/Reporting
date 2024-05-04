@@ -50,6 +50,8 @@ class locator:
             menu = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
             btn_restart = '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1'
             btn_change_mode = '/html/body/div[4]/div/div/div/div[1]/div[3]/span/div/div/div/div[1]/h1'
+            processing_element = '/html/body/div[1]/div[4]/div/div[2]/div[2]'
+            user_menu_popover_aria = '/html/body/div[4]/div'
             class modes:
                 current_mode = '/html/body/div[1]/div[4]/div/div[1]/div/dl/dd'
                 single = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[1]/div/div/label/i'
@@ -148,6 +150,10 @@ class locator:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div'
 
     class class_name:
+
+        class itemApps:
+            processing_visible = 'a-section aft-tool-processing aft-tool-status'
+            processing_hidden = 'a-section aft-tool-hide aft-tool-processing aft-tool-status'
         class delete:
             enter = 'a-button-input'
             box = 'a-box'
@@ -172,6 +178,9 @@ class locator:
 
     class ID:
         
+        class delete:
+            user_menu = 'a-page'
+            user_menu_overlay = 'a-popover-1'
         class pick:
             spinner = 'spinner'
 
