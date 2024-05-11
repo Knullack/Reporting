@@ -1130,7 +1130,7 @@ class chromeSession():
         def enter_container(container_):
             
             try:
-                time.sleep(1)
+                # time.sleep(1)
                 body = self.driver.find_element(By.XPATH, locator.body)
             except UnexpectedAlertPresentException:
                 try:
@@ -1156,23 +1156,25 @@ class chromeSession():
                 input.clear()
             except ElementNotInteractableException:
                 body.send_keys('t')
-                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
-
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
             if input.is_displayed():
-                input.click()
                 input.send_keys(container_)
+                time.sleep(1)
                 input.send_keys(Keys.ENTER)
-
+            else:
+                print("Not displayed")
         if ready_to_move:
+
             if workflow == 200:
-                self.navigate(move_URL)
                 enter_container(container)
-                time.sleep(.5)
+                # time.sleep(1)
+                WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                # print('entering destination')
                 enter_container(destination)
-                time.sleep(.2)
-                msg = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.error_msg).text
+                # time.sleep(1)
+                msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
                 print(f'MOVE STATUS: {container} > "{msg}"')
-                if msg in move_fails or msg == '':
+                if msg in move_fails:
                     input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
                     for i in range(2):
                         time.sleep(1.2)
@@ -1183,13 +1185,15 @@ class chromeSession():
                             input.send_keys('t')
                     print(f'{container} moved\n')
                     time.sleep(.5)
+                elif msg == '':
+                    msg = destination
             elif workflow == 300:
                 enter_container(container)
                 for i in range(2):
                     time.sleep(.5)
                     enter_container(destination)
                 time.sleep(1.5)
-        time.sleep(2)
+        time.sleep(1)
 
     def screenshot(self, site, xpath):
         """Screenshot given element at given site"""
