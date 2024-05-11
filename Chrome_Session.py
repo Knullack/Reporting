@@ -94,7 +94,7 @@ class chromeSession():
 
         self.driver = Chrome(options=optionals)
         self.actions = ActionChains(self.driver)
-        self.FCMenu_login(self.badge)
+        # self.FCMenu_login(self.badge)
 
     def FCMenu_login(self, badge: str) -> None:
         self.navigate(LOGIN_URL)

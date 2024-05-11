@@ -1,6 +1,10 @@
 from time import time
 from typing import Callable, Tuple
 from datetime import datetime
+import platform
+import os
+import glob
+import configparser
 
 def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | str:
     """
@@ -19,11 +23,107 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
         runtime_print = f"Runtime: {minutes}m:{seconds}s"
     
     return (runtime_print, return_value) if return_value is not None else runtime_print
-class constants:
-    LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-    CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
-    ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
 
+
+class constants:
+    __storage_file__ = 'local_storage.ini'
+    BASE_DIRECTORY = f"C:\\Users\\{os.getlogin()}\\AppData\\Local\\FCM Automations"
+    LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
+    ARGUMENTS = ['--log-level=3', '--force-device-scale-factor=0.7', '--disable-blink-features=AutomationControlled', '--disable-notifications', '--disable-infobars', '--disable-extensions', '--disable-dev-shm-usage', '--disable-gpu', '--disable-browser-side-navigation', '--disable-features=VizDisplayCompositor', '--no-sandbox', '--disable-logging']
+    CHROME_PATH = None
+    
+    @staticmethod
+    def find_chrome_path():
+        # Check the platform to determine the OS
+        os_name = platform.system()
+
+        chrome_paths = []
+
+        if os_name == 'Windows':
+            # Typical locations for Chrome on Windows
+            chrome_paths.extend([
+                os.path.join(os.getenv('PROGRAMFILES'), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+                os.path.join(os.getenv('PROGRAMFILES(X86)'), 'Google', 'Chrome', 'Application', 'chrome.exe')
+            ])
+        elif os_name == 'Darwin':
+            # Default location for Chrome on macOS
+            chrome_paths.append('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+        elif os_name == 'Linux':
+            # Common paths for Chrome on Linux
+            chrome_paths.extend([
+                '/usr/bin/google-chrome',
+                '/usr/local/bin/google-chrome',
+                '/opt/google/chrome/chrome'
+            ])
+    
+        # First, check in the common locations
+        for path in chrome_paths:
+            if os.path.isfile(path):
+                return path
+    
+        # If not found in common locations, search within the user's home directory
+        home_dir = os.path.expanduser('~')
+    
+        if os_name == 'Windows':
+            # Search for chrome.exe in the user's home directory and its subdirectories
+            chrome_search_pattern = os.path.join(home_dir, '**', 'chrome.exe')
+        elif os_name == 'Darwin':
+            # Search for Google Chrome in the user's home directory and its subdirectories
+            chrome_search_pattern = os.path.join(home_dir, '**', 'Google Chrome')
+        elif os_name == 'Linux':
+            # Search for google-chrome in the user's home directory and its subdirectories
+            chrome_search_pattern = os.path.join(home_dir, '**', 'google-chrome')
+    
+        # Use glob to find all matching files
+        found_chrome = glob.glob(chrome_search_pattern, recursive=True)
+
+        # Return the first valid path found, if any
+        if found_chrome:
+            return found_chrome[0]
+    
+        return None
+
+    @staticmethod
+    def configFile(chrome_executable: str, home_directory: str, storage_file: str):
+        # Create a ConfigParser object
+        config = configparser.ConfigParser()
+
+        # Ensure the base directory exists
+        os.makedirs(home_directory, exist_ok=True)
+
+        # File path for the configuration file within the base directory
+        config_file = os.path.join(home_directory, storage_file)
+
+        # Load the config file if it exists
+        if os.path.isfile(config_file):
+            config.read(config_file)
+            stored_path = config.get('Paths', 'program_path', fallback=None)
+        else:
+            # Create new config file and set the program path
+            stored_path = None
+            if 'Paths' not in config.sections():
+                config.add_section('Paths')
+
+            config.set('Paths', 'chrome_executable', chrome_executable)
+
+            # Save the config to the file
+            with open(config_file, 'w') as f:
+                config.write(f)
+            return chrome_executable
+
+    # Load the configuration file to get the stored Chrome path
+    config_file_path = os.path.join(BASE_DIRECTORY, __storage_file__)
+    config = configparser.ConfigParser()
+
+    if os.path.isfile(config_file_path):
+        config.read(config_file_path)
+        CHROME_PATH = config.get('Paths', 'chrome_executable', fallback=None)
+    else:
+        CHROME_PATH = configFile(find_chrome_path(), BASE_DIRECTORY, __storage_file__)
+        
+
+
+            
 class locator:
     body = '/html/body'
     nav = '/html/body/nav'
@@ -192,3 +292,6 @@ class header:
     REASON = ['Select reason to delete','Select deletion reason']
     CONFIRM = 'Confirm the deletion'
 
+        
+if __name__ == "__main__":
+    print(constants.CHROME_PATH)
