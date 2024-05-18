@@ -7,8 +7,9 @@ from util.utilities import runtime
 if __name__ == "__main__":
     session = chromeSession('hdc3', 12730876)
     # 'fnsku' : 'scannable_id',
-    containers = {
-}
+    containers: dict = {
+
+    }
 
     for i, (sku, container) in enumerate(containers.items(), start=1):
         print(f'{i}/{len(containers)}) {container} :: {sku} // {runtime(session.rodeo_delete, container, sku)}')
