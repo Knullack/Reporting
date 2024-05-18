@@ -838,7 +838,6 @@ class chromeSession():
                 return ''
 
         self.deleteItem(scannable_id, 'single', FN_SKU, title=get_title(FN_SKU))
-        
 
     def sideline_delete(self, container: str, shorted_container_to_dz: str):
         """Sideline container shortage & moved to dropzone"""
@@ -1114,7 +1113,6 @@ class chromeSession():
             #     keyboard.release(char)
             a = 0
         
-
     def move_container(self, workflow: Literal[200, 300], container: str, destination: str) -> None:
         """Moves container with Move Container App"""
         move_fails = ['Move was unsuccessful']
@@ -1167,12 +1165,11 @@ class chromeSession():
 
             if workflow == 200:
                 enter_container(container)
-                # time.sleep(1)
                 WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
-                # print('entering destination')
                 enter_container(destination)
-                # time.sleep(1)
                 msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
+                if msg == "":
+                    msg = destination
                 print(f'MOVE STATUS: {container} > "{msg}"')
                 if msg in move_fails:
                     input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
@@ -1185,8 +1182,6 @@ class chromeSession():
                             input.send_keys('t')
                     print(f'{container} moved\n')
                     time.sleep(.5)
-                elif msg == '':
-                    msg = destination
             elif workflow == 300:
                 enter_container(container)
                 for i in range(2):
@@ -1261,3 +1256,66 @@ class chromeSession():
         goto_UI()
         enter_container(container)
         continueC()
+
+    def get_container_consumer(self, container):
+        """Gets the consumer label from a given container"""
+        data_dict = dict
+        def goto_fcr() -> None:
+            FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
+            self.navigate(FCR)
+
+        def checked_inventory() -> bool:
+            time.sleep(1)
+            inventory_label = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "inventory-status")))
+            children = inventory_label.find_elements(By.XPATH, "*")
+            for child in children:
+                if child.tag_name == "i":
+                    return False
+                elif child.tag_name == "a":
+                    return True
+                else:
+                    return None            
+        def consumer() -> str:
+            data_dict = {}
+            try:
+                inventory_state = checked_inventory()
+                if inventory_state != None and inventory_state:
+                    inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
+                else:
+                    raise TimeoutException
+            except TimeoutException:
+                return "No Inventory"
+            trows = inventory_table.find_elements(By.TAG_NAME, "tr")
+            for i, row in enumerate(trows):
+                if row.text == "":
+                    continue
+                else:
+                    cells = row.find_elements(By.TAG_NAME, "td")
+                    data = [cell.text for cell in cells if cell.text.strip()]                
+                    data_dict[row.get_attribute("data-row-id").split("-")[0] + f"[{i}]"] = data
+
+            return data_dict
+        
+        def create_csv(filename: str):
+            if not os.path.exists(filename):
+                with open(filename, "w"):
+                    pass
+
+            
+
+        goto_fcr()
+        container_status = {"TRANSSHIPMENT": "", "UNOWNED": "", "noInventory": ""}
+        csv_file = "consumer_status.csv"
+        create_csv(csv_file)
+        data = consumer()
+        with open(csv_file, "a", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=["Status", "Container"])
+            if file.tell() == 0:  # Check if file is empty
+                writer.writeheader()
+            if "No Inventory" in data:
+                writer.writerow({"Container": container, "Status": "No Inventory"})
+            else:
+                for container, status in data.items():
+                    if "[" in container:
+                        container = container.split("[")[0]
+                    writer.writerow({"Container": container.split("[")[0], "Status": status[6]})
