@@ -1318,4 +1318,4 @@ class chromeSession():
                 for container, status in data.items():
                     if "[" in container:
                         container = container.split("[")[0]
-                    writer.writerow({"Container": container.split("[")[0], "Status": status[6]})
+                    writer.writerow({"Container": container, "Status": status[6]})
