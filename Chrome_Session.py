@@ -1304,7 +1304,6 @@ class chromeSession():
             
 
         goto_fcr()
-        container_status = {"TRANSSHIPMENT": "", "UNOWNED": "", "noInventory": ""}
         csv_file = "consumer_status.csv"
         create_csv(csv_file)
         data = consumer()
