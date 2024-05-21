@@ -94,7 +94,7 @@ class chromeSession():
 
         self.driver = Chrome(options=optionals)
         self.actions = ActionChains(self.driver)
-        # self.FCMenu_login(self.badge)
+        self.FCMenu_login(self.badge)
 
     def FCMenu_login(self, badge: str) -> None:
         self.navigate(LOGIN_URL)
@@ -838,7 +838,6 @@ class chromeSession():
                 return ''
 
         self.deleteItem(scannable_id, 'single', FN_SKU, title=get_title(FN_SKU))
-        
 
     def sideline_delete(self, container: str, shorted_container_to_dz: str):
         """Sideline container shortage & moved to dropzone"""
@@ -1114,7 +1113,6 @@ class chromeSession():
             #     keyboard.release(char)
             a = 0
         
-
     def move_container(self, workflow: Literal[200, 300], container: str, destination: str) -> None:
         """Moves container with Move Container App"""
         move_fails = ['Move was unsuccessful']
@@ -1130,7 +1128,7 @@ class chromeSession():
         def enter_container(container_):
             
             try:
-                time.sleep(1)
+                # time.sleep(1)
                 body = self.driver.find_element(By.XPATH, locator.body)
             except UnexpectedAlertPresentException:
                 try:
@@ -1156,23 +1154,24 @@ class chromeSession():
                 input.clear()
             except ElementNotInteractableException:
                 body.send_keys('t')
-                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
-
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
             if input.is_displayed():
-                input.click()
                 input.send_keys(container_)
+                time.sleep(1)
                 input.send_keys(Keys.ENTER)
-
+            else:
+                print("Not displayed")
         if ready_to_move:
+
             if workflow == 200:
-                self.navigate(move_URL)
                 enter_container(container)
-                time.sleep(.5)
+                WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
                 enter_container(destination)
-                time.sleep(.2)
-                msg = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.error_msg).text
+                msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
+                if msg == "":
+                    msg = destination
                 print(f'MOVE STATUS: {container} > "{msg}"')
-                if msg in move_fails or msg == '':
+                if msg in move_fails:
                     input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
                     for i in range(2):
                         time.sleep(1.2)
@@ -1189,7 +1188,7 @@ class chromeSession():
                     time.sleep(.5)
                     enter_container(destination)
                 time.sleep(1.5)
-        time.sleep(2)
+        time.sleep(1)
 
     def screenshot(self, site, xpath):
         """Screenshot given element at given site"""
@@ -1257,3 +1256,65 @@ class chromeSession():
         goto_UI()
         enter_container(container)
         continueC()
+
+    def get_container_consumer(self, container):
+        """Gets the consumer label from a given container"""
+        data_dict = dict
+        def goto_fcr() -> None:
+            FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
+            self.navigate(FCR)
+
+        def checked_inventory() -> bool:
+            time.sleep(1)
+            inventory_label = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "inventory-status")))
+            children = inventory_label.find_elements(By.XPATH, "*")
+            for child in children:
+                if child.tag_name == "i":
+                    return False
+                elif child.tag_name == "a":
+                    return True
+                else:
+                    return None            
+        def consumer() -> str:
+            data_dict = {}
+            try:
+                inventory_state = checked_inventory()
+                if inventory_state != None and inventory_state:
+                    inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
+                else:
+                    raise TimeoutException
+            except TimeoutException:
+                return "No Inventory"
+            trows = inventory_table.find_elements(By.TAG_NAME, "tr")
+            for i, row in enumerate(trows):
+                if row.text == "":
+                    continue
+                else:
+                    cells = row.find_elements(By.TAG_NAME, "td")
+                    data = [cell.text for cell in cells if cell.text.strip()]                
+                    data_dict[row.get_attribute("data-row-id").split("-")[0] + f"[{i}]"] = data
+
+            return data_dict
+        
+        def create_csv(filename: str):
+            if not os.path.exists(filename):
+                with open(filename, "w"):
+                    pass
+
+            
+
+        goto_fcr()
+        csv_file = "consumer_status.csv"
+        create_csv(csv_file)
+        data = consumer()
+        with open(csv_file, "a", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=["Status", "Container"])
+            if file.tell() == 0:  # Check if file is empty
+                writer.writeheader()
+            if "No Inventory" in data:
+                writer.writerow({"Container": container, "Status": "No Inventory"})
+            else:
+                for container, status in data.items():
+                    if "[" in container:
+                        container = container.split("[")[0]
+                    writer.writerow({"Container": container, "Status": status[6]})
