@@ -47,13 +47,24 @@ class locator:
 
         class delete:
             H1_header = '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'
-            restart = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
+            menu = '/html/body/div[1]/div[2]/div/div[2]/ul/li[2]/span/span/a'
             btn_restart = '/html/body/div[4]/div/div/div/div[1]/div[1]/span[2]/div/div/div/div[1]/h1'
-
+            btn_change_mode = '/html/body/div[4]/div/div/div/div[1]/div[3]/span/div/div/div/div[1]/h1'
+            processing_element = '/html/body/div[1]/div[4]/div/div[2]/div[2]'
+            user_menu_popover_aria = '/html/body/div[4]/div'
+            class modes:
+                current_mode = '/html/body/div[1]/div[4]/div/div[1]/div/dl/dd'
+                single = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[1]/div/div/label/i'
+                container = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[2]/div/div/label/i'
+                continue_enter = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/span/span/input'
+                select_modes_banner = '/html/body/div[1]/div[5]/div/div[2]/div[1]/div/div/h1'
             class scan:
+                scan_item = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/input'
                 input = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div/input'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span/span/input'
             class select:
+                fieldset = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[1]/fieldset'
+                boxSku = 'div/div/div/label/span/div[2]/div/div[2]/div[2]/div[2]/div[1]/dl/dd[1]'
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/span[1]/span/input'
                 container_empty = '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/div/div'
             class reason:
@@ -63,23 +74,40 @@ class locator:
             class confirm:
                 enter = '/html/body/div[1]/div[4]/div/div[2]/div[1]/form/span[1]/span/span/input'
 
+        class moveItems:
+            
+            H1_header = '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div/h1'
+            class modes:
+                each = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[1]/div/div/label/span/h1'
+                multi = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[2]/div/div/label/span/h1'
+                container = '/html/body/div[1]/div[5]/div/div[2]/div[1]/span/form/div/fieldset/div[3]/div/div/label/span/h1'
+            
         class fcmenu:
             input_badge = '//*[@id="badgeBarcodeId"]'
             inbound = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             outbound = '/html/body/div[3]/div/div[2]/ul[1]/li[2]/a'
             picking = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
-            individually_workflow = '/html/body/div/div/div/ul/li[2]'
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
-
+            unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            
+            class unbind:
+                input = '/html/body/div[2]/div/input'
+                continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
+                success_banner = '/html/body/div[1]/div[3]/div/div[2]/span[1]'
+                error_banner = '/html/body/div[1]/div[5]/div[2]/div[2]'
             class move_container:
+                individually_workflow = '/html/body/div/div/div/ul/li[2]'
                 input = '/html/body/div/div[7]/div/input'
                 error_msg = '/html/body/div/div[4]/div[2]/div[1]'
             class peculiar_inventory:
                 table_body = '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody'
 
             class fcresearch:
+                table = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table"
+                inventory = "/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table"
+                title_row = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[2]/th"
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
 
             class pickUI:
@@ -123,9 +151,21 @@ class locator:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div'
 
     class class_name:
+
+        class itemApps:
+            processing_visible = 'a-section aft-tool-processing aft-tool-status'
+            processing_hidden = 'a-section aft-tool-hide aft-tool-processing aft-tool-status'
         class delete:
             enter = 'a-button-input'
+            box = 'a-box'
+            fielset = 'a-box-group a-spacing-base'
 
+            class select:
+                continue_enter = 'a-button-inner'
+        
+        class move_items:
+            fieldset = 'a-box-group a-form-control-group'
+            
         class counts:
             spinner = 'spinner.large'
 
@@ -134,16 +174,22 @@ class locator:
             trans_out = 'text text--size-xl text--variant-white'
 
         class pick:
+            no_batch = 'button button--size-md button--variant-secondary button--fluid'
             bin = 'greyed-text'
 
     class ID:
         
+        class delete:
+            user_menu = 'a-page'
+            user_menu_overlay = 'a-popover-1'
         class pick:
             spinner = 'spinner'
 
 class header:  
-    SCAN = 'Scan container'
-    SELECT = 'Select item to delete'
+    SCAN = ['Scan container', 'Scan item']
+    SELECT = ['Select item to delete', 'Scan item', 'Select item']
+    QUANTITY = ['Enter quantity']
+    DESTINATION_CONTAINER = ['Scan destination container']
     REASON = ['Select reason to delete','Select deletion reason']
     CONFIRM = 'Confirm the deletion'
 

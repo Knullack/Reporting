@@ -2,3 +2,5 @@
 __pycache__/
 .vscode/
 util/__pycache__/
+/.vs
+/testing/__init__.py
