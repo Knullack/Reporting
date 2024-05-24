@@ -1289,7 +1289,11 @@ class chromeSession():
                 if inventory_state != None and inventory_state:
                     inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
                 else:
-                    raise TimeoutException
+                    inventory_state = checked_inventory()
+                    if inventory_state != None and inventory_state:
+                        inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
+                    else:
+                        raise TimeoutException
             except TimeoutException:
                 return "No Inventory"
             trows = inventory_table.find_elements(By.TAG_NAME, "tr")
