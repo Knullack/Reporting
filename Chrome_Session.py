@@ -1164,31 +1164,50 @@ class chromeSession():
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
             if input.is_displayed():
                 input.send_keys(container_)
-                time.sleep(1)
+                time.sleep(.4)
                 input.send_keys(Keys.ENTER)
             else:
                 print("Not displayed")
+
+        def validate_container() -> bool:
+            time.sleep(.6)
+            exception_title: str = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
+            if exception_title == "Scan was unsuccessful":
+                return False
+            else:
+                return True
+            
+        def checkInventory(_container: str):
+            value = self.get_container_data(_container, 'outerlocation')
+            if value == "No Inventory":
+                return "No Inventory"
+            else:
+                return value
+
         if ready_to_move:
 
             if workflow == 200:
                 enter_container(container)
-                WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
-                enter_container(destination)
-                msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
-                if msg == "":
-                    msg = destination
-                print(f'MOVE STATUS: {container} > "{msg}"')
-                if msg in move_fails:
-                    input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
-                    for i in range(2):
-                        time.sleep(1.2)
-                        try:
-                            input.send_keys(Keys.ENTER)
-                        except ElementNotInteractableException:
-                            self.driver.find_element(By.XPATH, locator.body).send_keys('t')
-                            input.send_keys('t')
-                    print(f'{container} moved\n')
-                    time.sleep(.5)
+                if validate_container():
+                    WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    enter_container(destination)
+                    msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
+                    if msg == "":
+                        msg = destination
+                    print(f'{container} -> "{msg}"')
+                    if msg in move_fails:
+                        input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
+                        for i in range(2):
+                            time.sleep(1.2)
+                            try:
+                                input.send_keys(Keys.ENTER)
+                            except ElementNotInteractableException:
+                                self.driver.find_element(By.XPATH, locator.body).send_keys('t')
+                                input.send_keys('t')
+                        print(f'{container} moved\n')
+                        time.sleep(.5)
+                else:
+                    print(f'{container} -> Failed Move // No Inventory')
             elif workflow == 300:
                 enter_container(container)
                 for i in range(2):
@@ -1264,7 +1283,7 @@ class chromeSession():
         enter_container(container)
         continueC()
 
-    def get_container_consumer(self, container):
+    def get_container_data(self, container, extracting_value: Literal['container', 'asin', 'fnsku', 'fcsku', 'quantity', 'disposition', 'consumer', 'consumerid', 'outerlocation', 'outerlocationtype', 'title']):
         """Gets the consumer label from a given container"""
         data_dict = dict
         def goto_fcr() -> None:
@@ -1318,14 +1337,42 @@ class chromeSession():
         csv_file = "consumer_status.csv"
         create_csv(csv_file)
         data = consumer()
-        with open(csv_file, "a", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=["Status", "Container"])
-            if file.tell() == 0:  # Check if file is empty
-                writer.writeheader()
-            if "No Inventory" in data:
-                writer.writerow({"Container": container, "Status": "No Inventory"})
-            else:
-                for container, status in data.items():
-                    if "[" in container:
-                        container = container.split("[")[0]
-                    writer.writerow({"Container": container, "Status": status[6]})
+        if extracting_value:
+            var = False
+            if extracting_value == 'container':
+                var = 0
+            elif extracting_value == 'asin':
+                var = 1
+            elif extracting_value == 'fnsku':
+                var = 2
+            elif extracting_value == 'fcsku':
+                var = 3
+            elif extracting_value == 'quantity':
+                var = 4
+            elif extracting_value == 'disposition':
+                var = 5
+            elif extracting_value == 'consumer':
+                var = 6
+            elif extracting_value == 'consumerid':
+                var = 7
+            elif extracting_value == 'outerlocation':
+                var = 8
+            elif extracting_value == 'outerlocationtype':
+                var = 9
+            elif extracting_value == 'title':
+                var = 10
+
+            for container, status in data.items():
+                return status[var]
+        else:
+            with open(csv_file, "a", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=["Status", "Container"])
+                if file.tell() == 0:  # Check if file is empty
+                    writer.writeheader()
+                if "No Inventory" in data:
+                    writer.writerow({"Container": container, "Status": "No Inventory"})
+                else:
+                    for container, status in data.items():
+                        if "[" in container:
+                            container = container.split("[")[0]
+                        writer.writerow({"Container": container, "Status": status[6]})

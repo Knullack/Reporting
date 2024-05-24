@@ -9,6 +9,7 @@ if __name__ == "__main__":
     list_containers: list = [
 
     ]
+        
     dict_containers: dict = {
 
     }
@@ -21,9 +22,13 @@ if __name__ == "__main__":
         for i, csX in enumerate(containers, start=1):
             print(f'{i}/{len(list_containers)}) {csX} // {runtime(session.sideline_delete, csX ,'TRASH')}')
 
-    def moveContainer(containers: list, destination: str):
-        for i, csX in enumerate(containers, start=1):
-            print(f'{i}/{len(containers)}) {csX} // {runtime(session.move_container, 200 , csX, destination)}')
+    def moveContainer(containers: list, destination: str, dict: bool = False):
+        if not dict:
+            for i, csX in enumerate(containers, start=1):
+                print(f'{i}/{len(containers)}) {csX} // {runtime(session.move_container, 200 , csX, destination)}')
+        else:
+            for i, (container, dest) in enumerate(dict_containers.items(), start=1):
+                print(f'{i}/{len(dict_containers)}) {container} -> {dest} // {runtime(session.move_container, 200, container, dest)}')
 
     def deleteItem(containers: list, mode: Literal['container', 'single']):
         for i, container in enumerate(containers, start=1):
@@ -31,10 +36,10 @@ if __name__ == "__main__":
 
     def get_consumer(containers: list):
         for i, container in enumerate(list_containers, start=1):
-            print(f"{i}/{len(containers)}) // {container} // {runtime(session.get_container_consumer, container)}")
+            print(f"{i}/{len(containers)}) // {container} // {runtime(session.get_container_data, container, 'outerlocation')}")
 
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
-    # moveContainer(list_containers, destination='TRASH')
+    # moveContainer(list_containers, destination='', dict=True)
     # get_consumer(list_containers)
     session.close()
