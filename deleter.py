@@ -3,7 +3,7 @@ import os
 from typing import Literal
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Chrome_Session import chromeSession
-from util.utilities import runtime
+from util.utilities import runtime, Container
 if __name__ == "__main__":
     session = chromeSession('hdc3', 12730876)
     list_containers: list = [
@@ -34,12 +34,12 @@ if __name__ == "__main__":
         for i, container in enumerate(containers, start=1):
             print(f'{i}/{len(containers)} // {container} // {runtime(session.deleteItem, container, mode)}')
 
-    def get_consumer(containers: list):
+    def containerData(containers: list, data: str, to_csv: bool = True):
         for i, container in enumerate(list_containers, start=1):
-            print(f"{i}/{len(containers)}) // {container} // {runtime(session.get_container_data, container, 'outerlocation')}")
+            print(f"{i}/{len(containers)}) // {container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
 
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
     # moveContainer(list_containers, destination='', dict=True)
-    # get_consumer(list_containers)
+    # containerData(list_containers, '')
     session.close()
