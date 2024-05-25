@@ -25,8 +25,8 @@ try:
     from selenium.webdriver.common.by import By
     from selenium.webdriver import Chrome
     from selenium.webdriver.remote.webelement import WebElement
-    from typing import Literal
-    from util.utilities import locator, header, constants
+    from typing import Literal, Union
+    from util.utilities import locator, header, constants, Container
 except ImportError as e:
     missing_module = str(e).split("'")[1]
     print(f"Module '{missing_module}' is not installed. Installing...")
@@ -1178,7 +1178,7 @@ class chromeSession():
                 return True
             
         def checkInventory(_container: str):
-            value = self.get_container_data(_container, 'outerlocation')
+            value = self.get_container_data(_container, Container.outerlocation, write_to_csv=False)
             if value == "No Inventory":
                 return "No Inventory"
             else:
@@ -1283,9 +1283,25 @@ class chromeSession():
         enter_container(container)
         continueC()
 
-    def get_container_data(self, container, extracting_value: Literal['container', 'asin', 'fnsku', 'fcsku', 'quantity', 'disposition', 'consumer', 'consumerid', 'outerlocation', 'outerlocationtype', 'title']):
-        """Gets the consumer label from a given container"""
-        data_dict = dict
+    def get_container_data(self, container, *extract_value: Union[str, Container], **write_to_csv: bool):
+        """Gets the consumer label from a given container\n
+        if `extract_value` is given, function returns said value, if not... function will write data to csv
+        in current directory\n
+        *`extract_value` should only be given one string*\n
+        Set `write_to_csv` `False` to return the data requested, otherwise, set `True` to write data request to csv file
+        """
+        container_data_dict = {}
+        container_paired_data = {}
+        container_history_data_dict = {}
+        container_history_paired_data = {}
+        csv_file = "consumer_status.csv"
+        headers = [Container.container, Container.asin, Container.fnsku, Container.fcsku, Container.LPN, Container.quantity,
+           Container.disposition, Container.consumer, Container.consumerid, Container.outerlocation,
+           Container.outerlocationtype, Container.title, Container.container_history.move_date,
+           Container.container_history.action, Container.container_history.movedBy,
+           Container.container_history.oldContainer, Container.container_history.newContainer,
+           Container.container_history.requestByClient]
+
         def goto_fcr() -> None:
             FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
             self.navigate(FCR)
@@ -1300,79 +1316,112 @@ class chromeSession():
                 elif child.tag_name == "a":
                     return True
                 else:
-                    return None            
+                    return None 
+                
         def consumer() -> str:
-            data_dict = {}
-            try:
-                inventory_state = checked_inventory()
-                if inventory_state != None and inventory_state:
+            inventory_state = checked_inventory()
+            if inventory_state != None and inventory_state:
+                try:
                     inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
-                else:
-                    inventory_state = checked_inventory()
-                    if inventory_state != None and inventory_state:
-                        inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
-                    else:
-                        raise TimeoutException
-            except TimeoutException:
+                    if not inventory_table:
+                        inventory_state = checked_inventory()
+                        if inventory_state != None and inventory_state:
+                            inventory_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.inventory)))
+                        else:
+                            raise TimeoutException
+                except TimeoutException:
+                    return "No Inventory"
+            else:
                 return "No Inventory"
+
             trows = inventory_table.find_elements(By.TAG_NAME, "tr")
             for i, row in enumerate(trows):
-                if row.text == "":
-                    continue
-                else:
-                    cells = row.find_elements(By.TAG_NAME, "td")
-                    data = [cell.text for cell in cells if cell.text.strip()]                
-                    data_dict[row.get_attribute("data-row-id").split("-")[0] + f"[{i}]"] = data
-
-            return data_dict
+                try:
+                    if row.text == "":
+                        continue
+                    else:
+                        cells = row.find_elements(By.TAG_NAME, "td")
+                        data = [cell.text for cell in cells]                
+                        container_data_dict[row.get_attribute("data-row-id").split("-")[0] + f"[{i}]"] = data
+                except StaleElementReferenceException:
+                    container_data_dict[container] = "ERROR"
+            return container_data_dict
         
+        def container_history():
+                try:
+                    container_history_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_history.table)))
+                except TimeoutException:
+                    self.driver.refresh()
+                    time.sleep(1)
+                    try:
+                        container_history_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_history.table)))
+                    except TimeoutException:
+                        container_history_data_dict[container] = ["error"] * 6
+                        return container_history_data_dict
+                trows = container_history_table.find_elements(By.TAG_NAME, "tr")
+                try:
+                    for row in trows:
+                        if row.text == '':
+                            continue
+                        else:
+                            cells = row.find_elements(By.TAG_NAME, "td")
+                            data = [cell.text for cell in cells]
+                            container_history_data_dict[container] = data
+                            return container_history_data_dict
+                except StaleElementReferenceException:
+                    container_history_data_dict[container] = ["error"] * 6
+                    return container_history_data_dict
+            
         def create_csv(filename: str):
             if not os.path.exists(filename):
                 with open(filename, "w"):
                     pass
-
-            
-
-        goto_fcr()
-        csv_file = "consumer_status.csv"
-        create_csv(csv_file)
-        data = consumer()
-        if extracting_value:
-            var = False
-            if extracting_value == 'container':
-                var = 0
-            elif extracting_value == 'asin':
-                var = 1
-            elif extracting_value == 'fnsku':
-                var = 2
-            elif extracting_value == 'fcsku':
-                var = 3
-            elif extracting_value == 'quantity':
-                var = 4
-            elif extracting_value == 'disposition':
-                var = 5
-            elif extracting_value == 'consumer':
-                var = 6
-            elif extracting_value == 'consumerid':
-                var = 7
-            elif extracting_value == 'outerlocation':
-                var = 8
-            elif extracting_value == 'outerlocationtype':
-                var = 9
-            elif extracting_value == 'title':
-                var = 10
-
-            for container, status in data.items():
-                return status[var]
-        else:
-            with open(csv_file, "a", newline="") as file:
-                writer = csv.DictWriter(file, fieldnames=["Status", "Container"])
-                if file.tell() == 0:  # Check if file is empty
+                    
+        def data_pairing(dict_param, hist: bool):
+            for _ , values in dict_param.items():
+                if hist:
+                    for header, value in zip(headers[12:], values):
+                        container_history_paired_data[header] = value
+                else:
+                    for header, value in zip(headers, values):
+                        container_paired_data[header] = value
+        
+        def csv_write(cont):
+            with open(csv_file, "a", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=[head for head in headers])
+                if file.tell() == 0:
                     writer.writeheader()
                 if "No Inventory" in data:
-                    writer.writerow({"Container": container, "Status": "No Inventory"})
+                    writer.writerow({Container.container: cont, Container.asin: "No Inventory"})
                 else:
-                    for container, status in data.items():
-                        if "[" in container:
-                            container = container.split("[")[0]
-                        writer.writerow({"Container": container, "Status": status[6]})
+                    for _container, _ in data.items():
+                        if "[" in _container:
+                            _container = _container.split("[")[0]
+                        writer.writerow({Container.container:                           _container, 
+                                         Container.asin:                                container_paired_data[Container.asin], 
+                                         Container.fnsku:                               container_paired_data[Container.fnsku], 
+                                         Container.fcsku:                               container_paired_data[Container.fcsku], 
+                                         Container.LPN:                                 container_paired_data[Container.LPN], 
+                                         Container.quantity:                            container_paired_data[Container.quantity], 
+                                         Container.consumer:                            container_paired_data[Container.consumer], 
+                                         Container.outerlocation:                       container_paired_data[Container.outerlocation], 
+                                         Container.outerlocationtype:                   container_paired_data[Container.outerlocationtype], 
+                                         Container.title:                               container_paired_data[Container.title],
+                                         Container.container_history.move_date:         container_history_paired_data[Container.container_history.move_date],
+                                         Container.container_history.action:            container_history_paired_data[Container.container_history.action],
+                                         Container.container_history.movedBy:           container_history_paired_data[Container.container_history.movedBy],
+                                         Container.container_history.oldContainer:      container_history_paired_data[Container.container_history.oldContainer],
+                                         Container.container_history.newContainer:      container_history_paired_data[Container.container_history.newContainer],
+                                         Container.container_history.requestByClient:   container_history_paired_data[Container.container_history.requestByClient]})
+        goto_fcr()
+        create_csv(csv_file)
+        data = consumer()
+        cont_hist_data = container_history()
+        if data != "No Inventory":
+            data_pairing(data, hist=False)
+            data_pairing(cont_hist_data, hist=True)
+        if not write_to_csv:
+                if extract_value[0] in container_paired_data:
+                    return container_paired_data[extract_value[0]]
+        else:
+            csv_write(container)
