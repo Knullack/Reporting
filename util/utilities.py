@@ -24,6 +24,28 @@ class constants:
     CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
 
+class Container:
+    container = 'Container'
+    asin = 'ASIN'
+    fnsku = 'FNSku'
+    fcsku = 'FCSku'
+    LPN = 'LPN'
+    quantity = 'Quantity'
+    disposition = 'Disposition'
+    consumer = 'Consumer'
+    consumerid = 'Consumer ID'
+    outerlocation = 'Outer Location'
+    outerlocationtype = 'Outer Location Type'
+    title = 'Title'
+    
+    class container_history:
+        move_date = "Move Date"
+        action = "Action"
+        movedBy = "Last Move By"
+        oldContainer = "Old Container"
+        newContainer = "New Container"
+        requestByClient = "Request By Client"
+
 class locator:
     body = '/html/body'
     nav = '/html/body/nav'
@@ -110,6 +132,8 @@ class locator:
                 title_row = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[2]/th"
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
 
+                class container_history:
+                    last_move_login = "/html/body/div[2]/div/div[1]/div/div[8]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr[1]/td[3]"
             class pickUI:
                 no_batch = '/html/body/div[1]/div[5]/ul/li[2]/a'
                 input = '/html/body/div[1]/div[5]/form/input[6]'
@@ -184,6 +208,10 @@ class locator:
             user_menu_overlay = 'a-popover-1'
         class pick:
             spinner = 'spinner'
+
+        class fcresearch:
+            class container_history:
+                table = 'table-container-history'
 
 class header:  
     SCAN = ['Scan container', 'Scan item']
