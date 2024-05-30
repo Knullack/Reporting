@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     def containerData(containers: list, data: str, to_csv: bool = True):
         for i, container in enumerate(list_containers, start=1):
-            print(f"{i}/{len(containers)}) // {container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
+            print(f"{i}/{len(containers)} // {container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
 
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
