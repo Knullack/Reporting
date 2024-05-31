@@ -12,5 +12,5 @@ if __name__ == "__main__":
     }
 
     for i, (sku, container) in enumerate(containers.items(), start=1):
-        print(f'{i}/{len(containers)} {container} :: {sku} // {runtime(session.rodeo_delete, container, sku)}')
+        print(f'\n{i}/{len(containers)}) {container} :: {sku} // {runtime(session.rodeo_delete, container, sku)}\n')
     session.close()
