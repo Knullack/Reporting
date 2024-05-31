@@ -481,7 +481,7 @@ class chromeSession():
                 wait_for_processing()
                 return True
             elif H1_header == header.SCAN[1]:
-                return enter_item(arg)
+                return enter_item(arg[0])
             elif H1_header in header.SELECT[0]:
                 if title:
                     name = title['title']
