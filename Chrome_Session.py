@@ -1311,15 +1311,22 @@ class chromeSession():
 
         def checked_inventory() -> bool:
             time.sleep(1)
-            inventory_label = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "inventory-status")))
-            children = inventory_label.find_elements(By.XPATH, "*")
-            for child in children:
-                if child.tag_name == "i":
-                    return False
-                elif child.tag_name == "a":
-                    return True
-                else:
-                    return None 
+            while True:
+                inventory_label = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "inventory-status")))
+                class_name = inventory_label.get_attribute('class')
+                if class_name == "loading failure":
+                    self.driver.refresh()
+                elif class_name == "loading":
+                    continue
+                elif class_name == "inventory-status":
+                    children = inventory_label.find_elements(By.XPATH, "*")
+                    for child in children:
+                        if child.tag_name == "i":
+                            return False
+                        elif child.tag_name == "a":
+                            return True
+                        else:
+                            return None 
                 
         def consumer() -> str:
             inventory_state = checked_inventory()
