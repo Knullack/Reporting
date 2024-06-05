@@ -448,14 +448,16 @@ class chromeSession():
             """Types in the given container in the input field"""
             input_container = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.input)
             input_container.click()
-
-            input_container.send_keys(f'{cont}')
+            input_container.clear()
+            input_container.send_keys(cont)
             container_enter = self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter)
             container_enter.submit()
             wait_for_processing()
             
         def enter_item(item) -> bool:
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.scan.scan_item))).send_keys(item)
+            input_item = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.delete.scan.scan_item)))
+            input_item.clear()
+            input_item.send_keys(item)
             self.driver.find_element(By.XPATH, locator.xpath.delete.scan.enter).click()
             wait_for_processing()
             try: # container empty message
