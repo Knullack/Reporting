@@ -491,7 +491,7 @@ class chromeSession():
                     FcSKU_count = len(boxes)
                     print(f"Item: {arg[0]}\nFcSKUs: {FcSKU_count} | {datetime.now().time()}")
                     try:
-                        if FcSKU_count > 1:
+                        if FcSKU_count >= 1:
                             for i, box in enumerate(boxes):
                                 lines = box.text.splitlines()
                                 for line in lines:
@@ -627,9 +627,12 @@ class chromeSession():
                     try:
                         confirm_deletion()
                         if FcSKU_count > 1:
-                            current_state = header.SELECT[0]
+                            current_state = header.SCAN[1]
                             continue
-                        print(f"{container} DELETED\n{'-' * 47}")
+                        if arg:
+                            print(f'{arg[0]} in {container} DELETED')
+                        else:
+                            print(f"{container} DELETED\n{'-' * 47}")
                         start_over()
                         current_state = 'end'
                     except Exception:
