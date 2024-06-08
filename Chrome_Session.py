@@ -1330,12 +1330,12 @@ class chromeSession():
             time.sleep(1)
             while True:
                 inventory_label = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "inventory-status")))
-                class_name = inventory_label.get_attribute('class')
+                class_name = self.driver.execute_script("return arguments[0].className;", inventory_label)
                 if class_name == "loading failure":
                     self.driver.refresh()
                 elif class_name == "loading":
                     continue
-                elif class_name == "inventory-status":
+                elif class_name == "":
                     children = inventory_label.find_elements(By.XPATH, "*")
                     for child in children:
                         if child.tag_name == "i":
@@ -1344,6 +1344,8 @@ class chromeSession():
                             return True
                         else:
                             return None 
+                else:
+                    continue
                 
         def consumer() -> str:
             inventory_state = checked_inventory()
@@ -1419,7 +1421,7 @@ class chromeSession():
                 if file.tell() == 0:
                     writer.writeheader()
                 if "No Inventory" in data:
-                    writer.writerow({Container.container: cont, Container.asin: "No Inventory"})
+                    writer.writerow({Container.inventory.container: cont, Container.inventory.asin: "No Inventory"})
                 else:
                     for _container, _ in data.items():
                         if "[" in _container:
