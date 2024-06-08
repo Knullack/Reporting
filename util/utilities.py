@@ -23,21 +23,29 @@ class constants:
     LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
     CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
+class header:  
+    SCAN = ['Scan container', 'Scan item']
+    SELECT = ['Select item to delete', 'Scan item', 'Select item']
+    QUANTITY = ['Enter quantity']
+    DESTINATION_CONTAINER = ['Scan destination container']
+    REASON = ['Select reason to delete','Select deletion reason']
+    CONFIRM = 'Confirm the deletion'
 
 class Container:
-    container = 'Container'
-    asin = 'ASIN'
-    fnsku = 'FNSku'
-    fcsku = 'FCSku'
-    LPN = 'LPN'
-    quantity = 'Quantity'
-    disposition = 'Disposition'
-    consumer = 'Consumer'
-    consumerid = 'Consumer ID'
-    outerlocation = 'Outer Location'
-    outerlocationtype = 'Outer Location Type'
-    title = 'Title'
-    
+    class inventory:
+        container = 'Container'
+        asin = 'ASIN'
+        fnsku = 'FNSku'
+        fcsku = 'FCSku'
+        LPN = 'LPN'
+        quantity = 'Quantity'
+        disposition = 'Disposition'
+        consumer = 'Consumer'
+        consumerid = 'Consumer ID'
+        outerlocation = 'Outer Location'
+        outerlocationtype = 'Outer Location Type'
+        title = 'Title'
+
     class container_history:
         move_date = "Move Date"
         action = "Action"
@@ -212,12 +220,4 @@ class locator:
         class fcresearch:
             class container_history:
                 table = 'table-container-history'
-
-class header:  
-    SCAN = ['Scan container', 'Scan item']
-    SELECT = ['Select item to delete', 'Scan item', 'Select item']
-    QUANTITY = ['Enter quantity']
-    DESTINATION_CONTAINER = ['Scan destination container']
-    REASON = ['Select reason to delete','Select deletion reason']
-    CONFIRM = 'Confirm the deletion'
 
