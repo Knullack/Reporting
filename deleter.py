@@ -16,27 +16,27 @@ if __name__ == "__main__":
 
     def unbind(containers: list):
         for i, csX in enumerate(containers, start=1):
-            print(f'{i}/{len(containers)}) // {csX} // {runtime(session.unbindHierarchy, csX)}')
+            print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{csX} // {runtime(session.unbindHierarchy, csX)}')
     
     def sideline(containers: list):
         for i, csX in enumerate(containers, start=1):
-            print(f'{i}/{len(list_containers)}) //{csX} // {runtime(session.sideline_delete, csX ,'TRASH')}')
+            print(f'{i}/{len(list_containers)}) // {(i/(len(containers)) * 100):.2f}% //{csX} // {runtime(session.sideline_delete, csX ,'TRASH')}')
 
     def moveContainer(containers: list, destination: str, dict: bool = False):
         if not dict:
             for i, csX in enumerate(containers, start=1):
-                print(f'{i}/{len(containers)}) // {csX} // {runtime(session.move_container, 200 , csX, destination)}')
+                print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% // {csX} // {runtime(session.move_container, 200 , csX, destination)}')
         else:
             for i, (container, dest) in enumerate(dict_containers.items(), start=1):
-                print(f'{i}/{len(dict_containers)}) // {container} -> {dest} // {runtime(session.move_container, 200, container, dest)}')
+                print(f'{i}/{len(dict_containers)}) // {(i/(len(dict_containers)) * 100):.2f}% // {container} -> {dest} // {runtime(session.move_container, 200, container, dest)}')
 
     def deleteItem(containers: list, mode: Literal['container', 'single']):
         for i, container in enumerate(containers, start=1):
-            print(f'{i}/{len(containers)}) // {container} // {runtime(session.deleteItem, container, mode)}')
+            print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{container} // {runtime(session.deleteItem, container, mode)}')
 
     def containerData(containers: list, data: str, to_csv: bool = True):
         for i, container in enumerate(list_containers, start=1):
-            print(f"{i}/{len(containers)}) // {container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
+            print(f"{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
 
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
