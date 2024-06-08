@@ -1303,12 +1303,24 @@ class chromeSession():
         container_history_data_dict = {}
         container_history_paired_data = {}
         csv_file = "consumer_status.csv"
-        headers = [Container.container, Container.asin, Container.fnsku, Container.fcsku, Container.LPN, Container.quantity,
-           Container.disposition, Container.consumer, Container.consumerid, Container.outerlocation,
-           Container.outerlocationtype, Container.title, Container.container_history.move_date,
-           Container.container_history.action, Container.container_history.movedBy,
-           Container.container_history.oldContainer, Container.container_history.newContainer,
-           Container.container_history.requestByClient]
+        headers = [Container.inventory.container,
+                   Container.inventory.asin,
+                   Container.inventory.fnsku,
+                   Container.inventory.fcsku,
+                   Container.inventory.LPN,
+                   Container.inventory.quantity,
+                   Container.inventory.disposition,
+                   Container.inventory.consumer,
+                   Container.inventory.consumerid,
+                   Container.inventory.outerlocation,
+                   Container.inventory.outerlocationtype,
+                   Container.inventory.title,
+                   Container.container_history.move_date,
+                   Container.container_history.action,
+                   Container.container_history.movedBy,
+                   Container.container_history.oldContainer,
+                   Container.container_history.newContainer,
+                   Container.container_history.requestByClient]
 
         def goto_fcr() -> None:
             FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
@@ -1412,16 +1424,16 @@ class chromeSession():
                     for _container, _ in data.items():
                         if "[" in _container:
                             _container = _container.split("[")[0]
-                        writer.writerow({Container.container:                           _container, 
-                                         Container.asin:                                container_paired_data[Container.asin], 
-                                         Container.fnsku:                               container_paired_data[Container.fnsku], 
-                                         Container.fcsku:                               container_paired_data[Container.fcsku], 
-                                         Container.LPN:                                 container_paired_data[Container.LPN], 
-                                         Container.quantity:                            container_paired_data[Container.quantity], 
-                                         Container.consumer:                            container_paired_data[Container.consumer], 
-                                         Container.outerlocation:                       container_paired_data[Container.outerlocation], 
-                                         Container.outerlocationtype:                   container_paired_data[Container.outerlocationtype], 
-                                         Container.title:                               container_paired_data[Container.title],
+                        writer.writerow({Container.inventory.container:                 _container, 
+                                         Container.inventory.asin:                      container_paired_data[Container.inventory.asin], 
+                                         Container.inventory.fnsku:                     container_paired_data[Container.inventory.fnsku], 
+                                         Container.inventory.fcsku:                     container_paired_data[Container.inventory.fcsku], 
+                                         Container.inventory.LPN:                       container_paired_data[Container.inventory.LPN], 
+                                         Container.inventory.quantity:                  container_paired_data[Container.inventory.quantity], 
+                                         Container.inventory.consumer:                  container_paired_data[Container.inventory.consumer], 
+                                         Container.inventory.outerlocation:             container_paired_data[Container.inventory.outerlocation], 
+                                         Container.inventory.outerlocationtype:         container_paired_data[Container.inventory.outerlocationtype], 
+                                         Container.inventory.title:                     container_paired_data[Container.inventory.title],
                                          Container.container_history.move_date:         container_history_paired_data[Container.container_history.move_date],
                                          Container.container_history.action:            container_history_paired_data[Container.container_history.action],
                                          Container.container_history.movedBy:           container_history_paired_data[Container.container_history.movedBy],
