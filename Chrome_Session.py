@@ -99,7 +99,7 @@ class chromeSession():
     def FCMenu_login(self, badge: str) -> None:
         self.navigate(LOGIN_URL)
         loginBadge = badge
-        input_element = self.driver.find_element('xpath', locator.xpath.fcmenu.input_badge)
+        input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
         self.HELPER_type_and_click(input_element, loginBadge)
 
     def get_text(self, site: str, xpath: str) -> str:
