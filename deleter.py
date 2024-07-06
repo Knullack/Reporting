@@ -6,6 +6,11 @@ from Chrome_Session import chromeSession
 from util.utilities import runtime, Container
 if __name__ == "__main__":
     session = chromeSession('hdc3', 12730876)
+
+    list_bins: list = [
+        
+    ]
+
     list_containers: list = [
 
     ]
@@ -38,8 +43,15 @@ if __name__ == "__main__":
         for i, container in enumerate(list_containers, start=1):
             print(f"{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
 
+    def resolve_andon(bin_ids: list):
+        for i, bin in enumerate(bin_ids, start=1):
+            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% //{bin} // {runtime(session.andons, bin)}")
+            
+            
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
-    # moveContainer(list_containers, destination='', dict=True)
+    # moveContainer(list_containers, destination='TRASH', dict=False)
     # containerData(list_containers, '')
+    # unbind(list_containers)
+    resolve_andon(list_bins)
     session.close()
