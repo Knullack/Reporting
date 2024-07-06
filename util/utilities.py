@@ -121,7 +121,6 @@ class locator:
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
-            
             class unbind:
                 input = '/html/body/div[2]/div/input'
                 continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
@@ -181,6 +180,14 @@ class locator:
 
         class fc_andons:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div'
+            filter_by_keyword = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/awsui-input/div/input'
+            select_first_andon = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr/td[1]/awsui-radio-button/div/label/input"
+            assign_andon = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr/td[12]/span/awsui-button/button"
+            view_edit = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[1]/span/div/div[2]/awsui-button[2]/button"
+            resolve_box = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[4]/div/div/div/div/span/awsui-checkbox/label/input"
+            save_changes = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[3]/span/div/div[2]/awsui-button[2]"
+            search_submit = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-form-section/div/div[2]/span/awsui-form/div/div[4]/span/div/div[2]/div/awsui-button[2]/button"
+            count_search_result = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/span"
 
     class class_name:
 
