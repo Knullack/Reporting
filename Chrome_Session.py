@@ -1454,3 +1454,33 @@ class chromeSession():
                     return container_paired_data[extract_value[0]]
         else:
             csv_write(container)
+
+    def andons(self, bin_id):
+        URL = "http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type=No+Scannable+Barcode"
+        if self.driver.current_url != URL:
+            self.navigate(URL)
+        keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
+        search_btn = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
+        keyword_search.clear()
+        keyword_search.send_keys(bin_id)
+
+        count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+        if "0" in count_search:
+            return None
+
+        assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
+        first_andon = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.select_first_andon)))
+
+        assign_andon.click()
+        time.sleep(1)
+        first_andon.click()
+
+        view_edit = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.view_edit)))
+        view_edit.click()
+
+        resolve_box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.resolve_box)))
+        resolve_box.click()
+
+        save = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.save_changes)))
+        save.click()
+        time.sleep(1.2)
