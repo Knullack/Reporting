@@ -21,7 +21,7 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
     return (runtime_print, return_value) if return_value is not None else runtime_print
 class constants:
     LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-    CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
+    CHROME_PATH = r"c:\Program Files\Google\Chrome\Application\chrome.exe"
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
 class header:  
     SCAN = ['Scan container', 'Scan item']
@@ -138,6 +138,8 @@ class locator:
                 inventory = "/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table"
                 title_row = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[2]/th"
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
+                child_containers_table = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table"
+                child_containers_table_first_row = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[1]"
 
                 class container_history:
                     last_move_login = "/html/body/div[2]/div/div[1]/div/div[8]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr[1]/td[3]"
@@ -216,6 +218,9 @@ class locator:
             no_batch = 'button button--size-md button--variant-secondary button--fluid'
             bin = 'greyed-text'
 
+        class barcodeGenerator:
+            print_btn = "apmbutton"
+
     class ID:
         
         class delete:
@@ -227,4 +232,9 @@ class locator:
         class fcresearch:
             class container_history:
                 table = 'table-container-history'
+
+        class barcodeGenerator:
+            barcodeEntry = "barcodedata"
+            displayText = "displaytext"
+            badgeID = "badgeid"
 

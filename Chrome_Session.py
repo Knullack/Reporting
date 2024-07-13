@@ -1,7 +1,7 @@
 try:
     import pyautogui as pyg
-    import win32clipboard as wc
-    import win32con
+    # import win32clipboard as wc
+    # import win32con
     import keyboard
     import importlib
     import logging
@@ -1090,40 +1090,40 @@ class chromeSession():
             return case
             # print(f'{datetime.now()} // {case} // Deleted')
             
-    def PAWS_tradional_picking(self):
-        site = 'https://taskui-gateway-iad.corp.amazon.com/?listingID=97fc5f2d-c627-46cb-afa0-7026e28e34fe&hideTasks=1&messaging=1&fans=1&interrupts=true&training=true&logoutWorkflowEnabled=1&skipTaskCenter=1#initialized'
-        self.navigate(site)
-        try:
-            WebDriverWait(self.driver, .5, poll_frequency=0.01).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.PAWS_Traditional_Picking.no_batch))).click()
-            print('driver click')
-        except TimeoutException:
-            self.driver.find_element(By.XPATH, locator.body).click()
-            print('exceptioned')
-            keyboard.press_and_release('n')
-        # step = WebDriverWait(self.driver, 30).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div[2]/div/div[1]/div/div[1]/div'), 'Scan vehicle ID'))
-        def paste(text):
-            wc.OpenClipboard()
-            wc.EmptyClipboard()
-            wc.SetClipboardText(text, win32con.CF_TEXT)
-            wc.CloseClipboard()
-            pyg.hotkey('ctrl', 'v')
+    # def PAWS_tradional_picking(self):
+    #     site = 'https://taskui-gateway-iad.corp.amazon.com/?listingID=97fc5f2d-c627-46cb-afa0-7026e28e34fe&hideTasks=1&messaging=1&fans=1&interrupts=true&training=true&logoutWorkflowEnabled=1&skipTaskCenter=1#initialized'
+    #     self.navigate(site)
+    #     try:
+    #         WebDriverWait(self.driver, .5, poll_frequency=0.01).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.PAWS_Traditional_Picking.no_batch))).click()
+    #         print('driver click')
+    #     except TimeoutException:
+    #         self.driver.find_element(By.XPATH, locator.body).click()
+    #         print('exceptioned')
+    #         keyboard.press_and_release('n')
+    #     # step = WebDriverWait(self.driver, 30).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div[2]/div/div[1]/div/div[1]/div'), 'Scan vehicle ID'))
+    #     def paste(text):
+    #         wc.OpenClipboard()
+    #         wc.EmptyClipboard()
+    #         wc.SetClipboardText(text, win32con.CF_TEXT)
+    #         wc.CloseClipboard()
+    #         pyg.hotkey('ctrl', 'v')
         
-        def complete_setup(vehicle, cage):
-            time.sleep(8)
-            print("awake")
-            paste(vehicle)
-            time.sleep(2)
-            paste(cage)
+    #     def complete_setup(vehicle, cage):
+    #         time.sleep(8)
+    #         print("awake")
+    #         paste(vehicle)
+    #         time.sleep(2)
+    #         paste(cage)
 
-        step = True
-        if step:   
-            complete_setup('veCG00221', 'paX00221')
-            head = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div[2]/div/div[2]/div/div[1]/div/span'))).text
-            #n for char in text:
-            #     keyboard.press(char)
-            #     time.sleep(0.1)  # Adjust the delay as needed
-            #     keyboard.release(char)
-            a = 0
+    #     step = True
+    #     if step:   
+    #         complete_setup('veCG00221', 'paX00221')
+    #         head = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div[2]/div/div[2]/div/div[1]/div/span'))).text
+    #         #n for char in text:
+    #         #     keyboard.press(char)
+    #         #     time.sleep(0.1)  # Adjust the delay as needed
+    #         #     keyboard.release(char)
+    #         a = 0
         
     def move_container(self, workflow: Literal[200, 300], container: str, destination: str) -> None:
         """Moves container with Move Container App"""
@@ -1484,3 +1484,43 @@ class chromeSession():
         save = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.save_changes)))
         save.click()
         time.sleep(1.2)
+
+    def print_andons(self, bin_id: str, printing_url: str):
+
+        def printData(barcode, text, badge):
+            barcode_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.barcodeEntry)))
+            text_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.displayText)))
+            badge_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.badgeID)))
+
+            barcode_entry.click()
+            barcode_entry.clear()
+            barcode_entry.send_keys(text)
+
+            text_entry.click()
+            text_entry.clear()
+            text_entry.send_keys(text)
+
+            badge_entry.click()
+            badge_entry.clear()
+            badge_entry.send_keys(badge)
+
+            print_btn = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, locator.class_name.barcodeGenerator.print_btn)))
+            print_btn.click()
+
+
+        FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={bin_id}"
+        self.navigate(FCR)
+        try:
+            child_containers = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table)))
+        except TimeoutException:
+            self.andons(bin_id)
+        if child_containers:
+            paX = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
+            self.navigate(printing_url)
+            printData(bin_id, bin_id, "1")
+            time.sleep(1)
+            printData(paX, paX, "1")
+            time.sleep(1)
+
+
+
