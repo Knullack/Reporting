@@ -8,7 +8,7 @@ if __name__ == "__main__":
     session = chromeSession('hdc3', 12730876)
 
     list_bins: list = [
-        
+
     ]
 
     list_containers: list = [
@@ -41,11 +41,11 @@ if __name__ == "__main__":
 
     def containerData(containers: list, data: str, to_csv: bool = True):
         for i, container in enumerate(list_containers, start=1):
-            print(f"{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
+            print(f"{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% // {container} // {runtime(session.get_container_data, container, data, write_to_csv = to_csv)}")
 
     def resolve_andon(bin_ids: list):
         for i, bin in enumerate(bin_ids, start=1):
-            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% //{bin} // {runtime(session.andons, bin)}")
+            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% // {bin} // {runtime(session.andons, bin)}")
             
             
     # deleteItem(list_containers, mode='container')
