@@ -1301,6 +1301,8 @@ class chromeSession():
         container_data_dict = {}
         container_paired_data = {}
         container_history_data_dict = {}
+        container_history_data_dict_2 = {}
+        container_history_data_dict_3 = {}
         container_history_paired_data = {}
         csv_file = "consumer_status.csv"
         headers = [Container.inventory.container,
@@ -1315,12 +1317,28 @@ class chromeSession():
                    Container.inventory.outerlocation,
                    Container.inventory.outerlocationtype,
                    Container.inventory.title,
+
                    Container.container_history.move_date,
                    Container.container_history.action,
                    Container.container_history.movedBy,
                    Container.container_history.oldContainer,
                    Container.container_history.newContainer,
-                   Container.container_history.requestByClient]
+                   Container.container_history.requestByClient,
+
+                   Container.container_history.move_date_2,
+                   Container.container_history.action_2,
+                   Container.container_history.movedBy_2,
+                   Container.container_history.oldContainer_2,
+                   Container.container_history.newContainer_2,
+                   Container.container_history.requestByClient_2,
+
+                #    Container.container_history.move_date_3,
+                #    Container.container_history.action_3,
+                #    Container.container_history.movedBy_3,
+                #    Container.container_history.oldContainer_3,
+                #    Container.container_history.newContainer_3,
+                #    Container.container_history.requestByClient_3,
+                   ]
 
         def goto_fcr() -> None:
             FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
@@ -1377,43 +1395,59 @@ class chromeSession():
             return container_data_dict
         
         def container_history():
+            try:
+                container_history_table = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_history.table)))
+            except TimeoutException:
+                self.driver.refresh()
+                time.sleep(1)
                 try:
-                    container_history_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_history.table)))
+                    container_history_table = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_history.table)))
                 except TimeoutException:
-                    self.driver.refresh()
-                    time.sleep(1)
-                    try:
-                        container_history_table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_history.table)))
-                    except TimeoutException:
-                        container_history_data_dict[container] = ["error"] * 6
-                        return container_history_data_dict
-                trows = container_history_table.find_elements(By.TAG_NAME, "tr")
-                try:
-                    for row in trows:
-                        if row.text == '':
-                            continue
-                        else:
-                            cells = row.find_elements(By.TAG_NAME, "td")
-                            data = [cell.text for cell in cells]
-                            container_history_data_dict[container] = data
-                            return container_history_data_dict
-                except StaleElementReferenceException:
                     container_history_data_dict[container] = ["error"] * 6
                     return container_history_data_dict
             
+            trows = container_history_table.find_elements(By.TAG_NAME, "tr")
+            num_rows_to_collect = min(len(trows), 3)
+
+            for i in range(num_rows_to_collect): # +1 because 1st row comes up empty
+                try:
+                    row = trows[i]
+                    if row.text == '':
+                        continue
+                    else:
+                        cells = row.find_elements(By.TAG_NAME, "td")
+                        data = [cell.text for cell in cells]
+                        if i == 1:
+                            container_history_data_dict[container] = data
+                        elif i == 2:
+                            container_history_data_dict_2[container] = data
+                        elif i == 3:
+                            container_history_data_dict_3[container] = data
+
+                except (IndexError, StaleElementReferenceException):
+                    container_history_data_dict[container] = ["error"] * 6
+            
+            return container_history_data_dict, container_history_data_dict_2, container_history_data_dict_3            
+        
         def create_csv(filename: str):
             if not os.path.exists(filename):
                 with open(filename, "w"):
                     pass
                     
-        def data_pairing(dict_param, hist: bool):
-            for _ , values in dict_param.items():
-                if hist:
-                    for header, value in zip(headers[12:], values):
-                        container_history_paired_data[header] = value
-                else:
-                    for header, value in zip(headers, values):
-                        container_paired_data[header] = value
+        def data_pairing(dict_param, hist: bool, row: int):
+            if hist:
+                target_dict = container_history_paired_data
+                if row == 1:
+                    headers_to_use = headers[12:18]
+                elif row == 2:
+                    headers_to_use = headers[18:]
+            else:
+                target_dict = container_paired_data
+                headers_to_use = headers  # Assuming these are the headers for non-history data
+            
+            for container, values in dict_param.items():
+                for header, value in zip(headers_to_use, values):
+                    target_dict.setdefault(container, {})[header] = value
         
         def csv_write(cont):
             with open(csv_file, "a", newline="", encoding="utf-8") as file:
@@ -1424,31 +1458,43 @@ class chromeSession():
                     writer.writerow({Container.inventory.container: cont, Container.inventory.asin: "No Inventory"})
                 else:
                     for _container, _ in data.items():
-                        if "[" in _container:
-                            _container = _container.split("[")[0]
-                        writer.writerow({Container.inventory.container:                 _container, 
-                                         Container.inventory.asin:                      container_paired_data[Container.inventory.asin], 
-                                         Container.inventory.fnsku:                     container_paired_data[Container.inventory.fnsku], 
-                                         Container.inventory.fcsku:                     container_paired_data[Container.inventory.fcsku], 
-                                         Container.inventory.LPN:                       container_paired_data[Container.inventory.LPN], 
-                                         Container.inventory.quantity:                  container_paired_data[Container.inventory.quantity], 
-                                         Container.inventory.consumer:                  container_paired_data[Container.inventory.consumer], 
-                                         Container.inventory.outerlocation:             container_paired_data[Container.inventory.outerlocation], 
-                                         Container.inventory.outerlocationtype:         container_paired_data[Container.inventory.outerlocationtype], 
-                                         Container.inventory.title:                     container_paired_data[Container.inventory.title],
-                                         Container.container_history.move_date:         container_history_paired_data[Container.container_history.move_date],
-                                         Container.container_history.action:            container_history_paired_data[Container.container_history.action],
-                                         Container.container_history.movedBy:           container_history_paired_data[Container.container_history.movedBy],
-                                         Container.container_history.oldContainer:      container_history_paired_data[Container.container_history.oldContainer],
-                                         Container.container_history.newContainer:      container_history_paired_data[Container.container_history.newContainer],
-                                         Container.container_history.requestByClient:   container_history_paired_data[Container.container_history.requestByClient]})
+                        stripped_container = _container.split("[")[0]
+                        writer.writerow({Container.inventory.container:                 container_paired_data[_container][Container.inventory.container], 
+                                         Container.inventory.asin:                      container_paired_data[_container][Container.inventory.asin], 
+                                         Container.inventory.fnsku:                     container_paired_data[_container][Container.inventory.fnsku], 
+                                         Container.inventory.fcsku:                     container_paired_data[_container][Container.inventory.fcsku], 
+                                         Container.inventory.LPN:                       container_paired_data[_container][Container.inventory.LPN], 
+                                         Container.inventory.quantity:                  container_paired_data[_container][Container.inventory.quantity], 
+                                         Container.inventory.consumer:                  container_paired_data[_container][Container.inventory.consumer], 
+                                         Container.inventory.outerlocation:             container_paired_data[_container][Container.inventory.outerlocation], 
+                                         Container.inventory.outerlocationtype:         container_paired_data[_container][Container.inventory.outerlocationtype], 
+                                         Container.inventory.title:                     container_paired_data[_container][Container.inventory.title],
+                                         Container.container_history.move_date:         container_history_paired_data[stripped_container][Container.container_history.move_date],
+                                         Container.container_history.action:            container_history_paired_data[stripped_container][Container.container_history.action],
+                                         Container.container_history.movedBy:           container_history_paired_data[stripped_container][Container.container_history.movedBy],
+                                         Container.container_history.oldContainer:      container_history_paired_data[stripped_container][Container.container_history.oldContainer],
+                                         Container.container_history.newContainer:      container_history_paired_data[stripped_container][Container.container_history.newContainer],
+                                         Container.container_history.requestByClient:   container_history_paired_data[stripped_container][Container.container_history.requestByClient],
+                                         
+                                         Container.container_history.move_date_2:       container_history_paired_data[stripped_container][Container.container_history.move_date_2],
+                                         Container.container_history.action_2:          container_history_paired_data[stripped_container][Container.container_history.action_2],
+                                         Container.container_history.movedBy_2:         container_history_paired_data[stripped_container][Container.container_history.movedBy_2],
+                                         Container.container_history.oldContainer_2:    container_history_paired_data[stripped_container][Container.container_history.oldContainer_2],
+                                         Container.container_history.newContainer_2:    container_history_paired_data[stripped_container][Container.container_history.newContainer_2],
+                                         Container.container_history.requestByClient_2: container_history_paired_data[stripped_container][Container.container_history.requestByClient_2]
+                                         })
         goto_fcr()
         create_csv(csv_file)
         data = consumer()
         cont_hist_data = container_history()
         if data != "No Inventory":
-            data_pairing(data, hist=False)
-            data_pairing(cont_hist_data, hist=True)
+            data_pairing(data, hist=False, row = 1)  # Pair non-history data
+
+            # Pair history data from all three dictionaries
+            data_pairing(cont_hist_data[0], hist=True, row = 1)
+            data_pairing(cont_hist_data[1], hist=True, row = 2)
+            # data_pairing(cont_hist_data[2], hist=True)
+
         if not write_to_csv:
                 if extract_value[0] in container_paired_data:
                     return container_paired_data[extract_value[0]]
@@ -1460,11 +1506,17 @@ class chromeSession():
         if self.driver.current_url != URL:
             self.navigate(URL)
         keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
-        search_btn = WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
+        WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
         keyword_search.clear()
         keyword_search.send_keys(bin_id)
 
-        count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+        try:
+            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+        except TimeoutException:
+            self.driver.refresh()
+            WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
+            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+
         if "0" in count_search:
             return None
 
@@ -1483,4 +1535,4 @@ class chromeSession():
 
         save = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.save_changes)))
         save.click()
-        time.sleep(1.2)
+        time.sleep(1.5)
