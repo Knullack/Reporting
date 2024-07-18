@@ -47,12 +47,27 @@ class Container:
         title = 'Title'
 
     class container_history:
+        # first row
         move_date = "Move Date"
         action = "Action"
-        movedBy = "Last Move By"
+        movedBy = "Move By"
         oldContainer = "Old Container"
         newContainer = "New Container"
         requestByClient = "Request By Client"
+        # second row
+        move_date_2 = "Move Date 2"
+        action_2 = "Action 2"
+        movedBy_2 = "Move by 2"
+        oldContainer_2 = "Old Container 2"
+        newContainer_2 = "New Container 2"
+        requestByClient_2 = "Request by Client 2"
+        # third row
+        move_date_3 = "Move Date 3"
+        action_3 = "Action 3"
+        movedBy_3 = "Move By 3"
+        oldContainer_3 = "Old Container 3"
+        newContainer_3 = "New Container 3"
+        requestByClient_3 = "Request by Client 3"
 
 class locator:
     body = '/html/body'
