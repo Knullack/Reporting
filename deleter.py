@@ -45,13 +45,17 @@ if __name__ == "__main__":
 
     def resolve_andon(bin_ids: list):
         for i, bin in enumerate(bin_ids, start=1):
-            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% // {bin} // {runtime(session.andons, bin)}")
-            
+            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% //{bin} // {runtime(session.andons, bin)}")
+    
+    def print_andons(bin_ids: list):
+        for i, bin in enumerate(bin_ids, start=1):
+            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% //{bin} // {runtime(session.print_andons, bin, "http://localhost:5965/barcodegenerator")}")
             
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
     # moveContainer(list_containers, destination='TRASH', dict=False)
     # containerData(list_containers, '')
     # unbind(list_containers)
-    resolve_andon(list_bins)
+    # resolve_andon(list_bins)
+    print_andons(list_bins)
     session.close()
