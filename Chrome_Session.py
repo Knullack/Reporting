@@ -1502,77 +1502,66 @@ class chromeSession():
             csv_write(container)
 
     def andons(self, bin_id):
-        URL = "http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type=No+Scannable+Barcode"
-        if self.driver.current_url != URL:
-            self.navigate(URL)
-        keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
-        WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
-        keyword_search.clear()
-        keyword_search.send_keys(bin_id)
-
-        try:
-            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
-        except TimeoutException:
-            self.driver.refresh()
+            URL = "http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type=All+types"
+            if self.driver.current_url != URL:
+                self.navigate(URL)
+            keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
-            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
-
-        if "0" in count_search:
-            return None
-
-        assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
-        first_andon = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.select_first_andon)))
-
-        assign_andon.click()
-        time.sleep(1)
-        first_andon.click()
-
-        view_edit = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.view_edit)))
-        view_edit.click()
-
-        resolve_box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.resolve_box)))
-        resolve_box.click()
-
-        save = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.save_changes)))
-        save.click()
-        time.sleep(1.2)
-
+            keyword_search.clear()
+            keyword_search.send_keys(bin_id)
+            try:
+                count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+            except TimeoutException:
+                self.driver.refresh()
+                WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
+                count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+            if "0" in count_search:
+                return None
+            assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
+            first_andon = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.select_first_andon)))
+            assign_andon.click()
+            time.sleep(1)
+            first_andon.click()
+            view_edit = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.view_edit)))
+            view_edit.click()
+            resolve_box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.resolve_box)))
+            resolve_box.click()
+            save = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.save_changes)))
+            save.click()
+            time.sleep(1.2)
+            
     def print_andons(self, bin_id: str, printing_url: str):
-
         def printData(barcode, text, badge):
             barcode_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.barcodeEntry)))
             text_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.displayText)))
             badge_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.badgeID)))
-
             barcode_entry.click()
             barcode_entry.clear()
             barcode_entry.send_keys(text)
-
             text_entry.click()
             text_entry.clear()
             text_entry.send_keys(text)
-
             badge_entry.click()
             badge_entry.clear()
             badge_entry.send_keys(badge)
-
             print_btn = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, locator.class_name.barcodeGenerator.print_btn)))
             print_btn.click()
-
-
         FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={bin_id}"
         self.navigate(FCR)
+        child_containers = None
         try:
-            child_containers = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table)))
+            child_containers = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table))).text
+            if child_containers == "No child containers.":
+                self.andons(bin_id)
+                return
+            else:
+                child_containers = child_containers.split(' ', 1)[0]
         except TimeoutException:
             self.andons(bin_id)
         if child_containers:
-            paX = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
+            paX = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
             self.navigate(printing_url)
             printData(bin_id, bin_id, "1")
             time.sleep(1)
             printData(paX, paX, "1")
-            time.sleep(1)
-
-
-
+            time.sleep(1.5)
