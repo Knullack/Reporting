@@ -21,7 +21,7 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
     return (runtime_print, return_value) if return_value is not None else runtime_print
 class constants:
     LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-    CHROME_PATH = r"c:\Program Files\Google\Chrome\Application\chrome.exe"
+    CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
 class header:  
     SCAN = ['Scan container', 'Scan item']
