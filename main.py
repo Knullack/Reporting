@@ -21,11 +21,11 @@ if __name__ == "__main__":
 
     def unbind(containers: list):
         for i, csX in enumerate(containers, start=1):
-            print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{csX} // {runtime(session.unbindHierarchy, csX)}')
+            print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% // {csX} // {runtime(session.unbindHierarchy, csX)}')
     
     def sideline(containers: list):
         for i, csX in enumerate(containers, start=1):
-            print(f'{i}/{len(list_containers)}) // {(i/(len(containers)) * 100):.2f}% //{csX} // {runtime(session.sideline_delete, csX ,'TRASH')}')
+            print(f'{i}/{len(list_containers)}) // {(i/(len(containers)) * 100):.2f}% // {csX} // {runtime(session.sideline_delete, csX ,'TRASH')}')
 
     def moveContainer(containers: list, destination: str, dict: bool = False):
         if not dict:
@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     def deleteItem(containers: list, mode: Literal['container', 'single']):
         for i, container in enumerate(containers, start=1):
-            print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% //{container} // {runtime(session.deleteItem, container, mode)}')
+            print(f'{i}/{len(containers)}) // {(i/(len(containers)) * 100):.2f}% // {container} // {runtime(session.deleteItem, container, mode)}')
 
     def containerData(containers: list, data: str, to_csv: bool = True):
         for i, container in enumerate(list_containers, start=1):
@@ -45,17 +45,17 @@ if __name__ == "__main__":
 
     def resolve_andon(bin_ids: list):
         for i, bin in enumerate(bin_ids, start=1):
-            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% //{bin} // {runtime(session.andons, bin)}")
+            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% // {bin} // {runtime(session.andons, bin)}")
     
     def print_andons(bin_ids: list):
         for i, bin in enumerate(bin_ids, start=1):
-            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% //{bin} // {runtime(session.print_andons, bin, "http://localhost:5965/barcodegenerator")}")
+            print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% / {bin} // {runtime(session.print_andons, bin, "http://localhost:5965/barcodegenerator")}")
             
     # deleteItem(list_containers, mode='container')
-    # sideline(list_containers)
+    # sideline(list_containers)P-1-P300B330P-1-P300B330
     # moveContainer(list_containers, destination='TRASH', dict=False)
     # containerData(list_containers, '')
     # unbind(list_containers)
     # resolve_andon(list_bins)
-    print_andons(list_bins)
+    # print_andons(list_bins)
     session.close()
