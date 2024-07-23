@@ -21,7 +21,7 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
     return (runtime_print, return_value) if return_value is not None else runtime_print
 class constants:
     LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-    CHROME_PATH = r"c:\Program Files\Google\Chrome\Application\chrome.exe"
+    CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
 class header:  
     SCAN = ['Scan container', 'Scan item']
@@ -47,12 +47,27 @@ class Container:
         title = 'Title'
 
     class container_history:
+        # first row
         move_date = "Move Date"
         action = "Action"
-        movedBy = "Last Move By"
+        movedBy = "Move By"
         oldContainer = "Old Container"
         newContainer = "New Container"
         requestByClient = "Request By Client"
+        # second row
+        move_date_2 = "Move Date 2"
+        action_2 = "Action 2"
+        movedBy_2 = "Move by 2"
+        oldContainer_2 = "Old Container 2"
+        newContainer_2 = "New Container 2"
+        requestByClient_2 = "Request by Client 2"
+        # third row
+        move_date_3 = "Move Date 3"
+        action_3 = "Action 3"
+        movedBy_3 = "Move By 3"
+        oldContainer_3 = "Old Container 3"
+        newContainer_3 = "New Container 3"
+        requestByClient_3 = "Request by Client 3"
 
 class locator:
     body = '/html/body'
@@ -190,6 +205,8 @@ class locator:
             save_changes = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[3]/span/div/div[2]/awsui-button[2]"
             search_submit = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-form-section/div/div[2]/span/awsui-form/div/div[4]/span/div/div[2]/div/awsui-button[2]/button"
             count_search_result = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/span"
+            login_input = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[2]/div/div/div/div/span/awsui-input/div/input"
+            userlogin = "/html/body/div/div/div/header/ul/li[3]"
 
     class class_name:
 
