@@ -1532,11 +1532,15 @@ class chromeSession():
             return None
         
         click_assign_andon()
+        time.sleep(.3)
         click_first_andon()
+        time.sleep(.3)
         click_view_edit()
-        time.sleep(1)
+        time.sleep(.3)
         ensure_login(userlogin)
+        time.sleep(.3)
         click_resolve_box()
+        time.sleep(.3)
         click_save()
 
 
