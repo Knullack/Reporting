@@ -52,7 +52,7 @@ if __name__ == "__main__":
             print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% / {bin} // {runtime(session.print_andons, bin, "http://localhost:5965/barcodegenerator")}")
             
     # deleteItem(list_containers, mode='container')
-    # sideline(list_containers)P-1-P300B330P-1-P300B330
+    # sideline(list_containers)
     # moveContainer(list_containers, destination='TRASH', dict=False)
     # containerData(list_containers, '')
     # unbind(list_containers)
