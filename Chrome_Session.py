@@ -1565,7 +1565,7 @@ class chromeSession():
         def container_loaded():
             time.sleep(1)
             while True:
-                container_details_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "container-hierarchy-status")))
+                container_details_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_details.table)))
                 class_name = self.driver.execute_script("return arguments[0].className;", container_details_section)
                 if class_name == "loading failure":
                     self.driver.refresh()
