@@ -249,6 +249,9 @@ class locator:
         class fcresearch:
             class container_history:
                 table = 'table-container-history'
+            
+            class container_details:
+                table = "container-hierarchy-status"
 
         class barcodeGenerator:
             barcodeEntry = "barcodedata"
