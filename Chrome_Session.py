@@ -1490,17 +1490,38 @@ class chromeSession():
                 click_view_edit()
 
         def ensure_login(userlogin):
-            login = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.login_input)))
-            if login.text != userlogin:
-                login.clear()
-                login.send_keys(userlogin)
+            pass
+            # login = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.login_input)))
+            # if login.text != userlogin:
+            #     login.clear()
+            #     login.send_keys(userlogin)
 
         def click_resolve_box():
             try:
-                resolve_box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.resolve_box)))
-                resolve_box.click()
+                resolve_box = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.resolve_box)))
+                outer_div = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.label_resolveBox)))
+                class_name = self.driver.execute_script("return arguments[0].className;", outer_div)
+                if class_name == "awsui-checkbox":
+                    resolve_box.click()
+                else: pass
             except TimeoutException:
-                print("resolve_box element not found")
+                try:
+                    self.driver.refresh()
+                    WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
+
+                    keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
+                    keyword_search.clear()
+                    keyword_search.send_keys(bin_id)
+
+                    click_assign_andon()
+                    time.sleep(.7)
+                    click_first_andon()
+                    time.sleep(.7)
+                    click_view_edit()
+                    time.sleep(.7)
+                    click_resolve_box()
+                except TimeoutException:
+                    print("resolve_box element not found")
 
         def click_save():
             try:
@@ -1514,7 +1535,7 @@ class chromeSession():
         if self.driver.current_url != URL:
             self.navigate(URL)
         
-        userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
+        # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
         keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
         WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
         
@@ -1532,15 +1553,13 @@ class chromeSession():
             return None
         
         click_assign_andon()
-        time.sleep(.3)
         click_first_andon()
-        time.sleep(.3)
         click_view_edit()
-        time.sleep(.3)
-        ensure_login(userlogin)
-        time.sleep(.3)
+        time.sleep(1)
+        # ensure_login(userlogin)
+        # time.sleep(.7)
         click_resolve_box()
-        time.sleep(.3)
+        # time.sleep(.7)
         click_save()
 
 
