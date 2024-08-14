@@ -1,6 +1,10 @@
 from time import time
 from typing import Callable, Tuple
 from datetime import datetime
+import configparser
+import os
+import platform
+import glob
 
 def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | str:
     """
@@ -19,9 +23,90 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
         runtime_print = f"Runtime: {minutes}m:{seconds}s"
     
     return (runtime_print, return_value) if return_value is not None else runtime_print
+
+def dir_exists(DirPath) -> bool:
+    return os.path.exists(DirPath) and os.path.isdir(DirPath)
+
+class chromeFinder:
+    __storage_file__ = 'local_storage.ini'
+    BASE_DIRECTORY = f"C:\\Users\\{os.getlogin()}\\AppData\\Local\\FCM Automations"
+    CHROME_PATH = None
+
+    # Function to find Chrome path
+    @staticmethod
+    def find_chrome_path():
+        os_name = platform.system()
+
+        chrome_paths = []
+        if os_name == 'Windows':
+            chrome_paths.extend([
+                os.path.join(os.getenv('PROGRAMFILES'), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+                os.path.join(os.getenv('PROGRAMFILES(X86)'), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+            ])
+        elif os_name == 'Darwin':
+            chrome_paths.append('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+        elif os_name == 'Linux':
+            chrome_paths.extend([
+                '/usr/bin/google-chrome',
+                '/usr/local/bin/google-chrome',
+                '/opt/google/chrome/chrome',
+            ])
+
+        # First, check in common locations
+        for path in chrome_paths:
+            if os.path.isfile(path):
+                return path
+        
+        # Search in user directory
+        home_dir = os.path.expanduser('~')
+        if os_name == 'Windows':
+            chrome_search_pattern = os.path.join(home_dir, '**', 'chrome.exe')
+        elif os_name == 'Darwin':
+            chrome_search_pattern = os.path.join(home_dir, '**', 'Google Chrome')
+        elif os_name == 'Linux':
+            chrome_search_pattern = os.path.join(home_dir, '**', 'google-chrome')
+        
+        found_chrome = glob.glob(chrome_search_pattern, recursive=True)
+
+        if found_chrome:
+            return found_chrome[0]
+
+        return None
+
+    # Method to update configuration with Chrome path
+    @staticmethod
+    def configFile(chrome_executable):
+        config = configparser.ConfigParser()
+
+        # Ensure the base directory exists
+        os.makedirs(chromeFinder.BASE_DIRECTORY, exist_ok=True)
+
+        # File path for configuration file
+        config_file = os.path.join(chromeFinder.BASE_DIRECTORY, chromeFinder.__storage_file__)
+
+        # Load existing config or create a new one
+        if os.path.isfile(config_file):
+            config.read(config_file)
+        else:
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+        stored_path = config.get('Paths', 'chrome_executable', fallback=None)
+
+        if stored_path is None:
+            if 'Paths' not in config.sections():
+                config.add_section('Paths')
+
+            config.set('Paths', 'chrome_executable', chrome_executable)
+
+            # Save to configuration file
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+        return stored_path or chrome_executable
 class constants:
     LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-    CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
+    CHROME_PATH = chromeFinder().configFile(chromeFinder().find_chrome_path())
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
 class header:  
     SCAN = ['Scan container', 'Scan item']
@@ -250,6 +335,9 @@ class locator:
         class fcresearch:
             class container_history:
                 table = 'table-container-history'
+            
+            class container_details:
+                table = "container-hierarchy-status"
 
         class barcodeGenerator:
             barcodeEntry = "barcodedata"
