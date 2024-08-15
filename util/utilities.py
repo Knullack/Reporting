@@ -1,6 +1,10 @@
 from time import time
 from typing import Callable, Tuple
 from datetime import datetime
+import configparser
+import os
+import platform
+import glob
 
 def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | str:
     """
@@ -19,10 +23,136 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
         runtime_print = f"Runtime: {minutes}m:{seconds}s"
     
     return (runtime_print, return_value) if return_value is not None else runtime_print
+
+def dir_exists(DirPath) -> bool:
+    return os.path.exists(DirPath) and os.path.isdir(DirPath)
+
+class chromeFinder:
+    __storage_file__ = 'local_storage.ini'
+    BASE_DIRECTORY = f"C:\\Users\\{os.getlogin()}\\AppData\\Local\\FCM Automations"
+    CHROME_PATH = None
+
+    # Function to find Chrome path
+    @staticmethod
+    def find_chrome_path():
+        os_name = platform.system()
+
+        chrome_paths = []
+        if os_name == 'Windows':
+            chrome_paths.extend([
+                os.path.join(os.getenv('PROGRAMFILES'), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+                os.path.join(os.getenv('PROGRAMFILES(X86)'), 'Google', 'Chrome', 'Application', 'chrome.exe'),
+            ])
+        elif os_name == 'Darwin':
+            chrome_paths.append('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+        elif os_name == 'Linux':
+            chrome_paths.extend([
+                '/usr/bin/google-chrome',
+                '/usr/local/bin/google-chrome',
+                '/opt/google/chrome/chrome',
+            ])
+
+        # First, check in common locations
+        for path in chrome_paths:
+            if os.path.isfile(path):
+                return path
+        
+        # Search in user directory
+        home_dir = os.path.expanduser('~')
+        if os_name == 'Windows':
+            chrome_search_pattern = os.path.join(home_dir, '**', 'chrome.exe')
+        elif os_name == 'Darwin':
+            chrome_search_pattern = os.path.join(home_dir, '**', 'Google Chrome')
+        elif os_name == 'Linux':
+            chrome_search_pattern = os.path.join(home_dir, '**', 'google-chrome')
+        
+        found_chrome = glob.glob(chrome_search_pattern, recursive=True)
+
+        if found_chrome:
+            return found_chrome[0]
+
+        return None
+
+    # Method to update configuration with Chrome path
+    @staticmethod
+    def configFile(chrome_executable):
+        config = configparser.ConfigParser()
+
+        # Ensure the base directory exists
+        os.makedirs(chromeFinder.BASE_DIRECTORY, exist_ok=True)
+
+        # File path for configuration file
+        config_file = os.path.join(chromeFinder.BASE_DIRECTORY, chromeFinder.__storage_file__)
+
+        # Load existing config or create a new one
+        if os.path.isfile(config_file):
+            config.read(config_file)
+        else:
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+        stored_path = config.get('Paths', 'chrome_executable', fallback=None)
+
+        if stored_path is None:
+            if 'Paths' not in config.sections():
+                config.add_section('Paths')
+
+            config.set('Paths', 'chrome_executable', chrome_executable)
+
+            # Save to configuration file
+            with open(config_file, 'w') as f:
+                config.write(f)
+
+        return stored_path or chrome_executable
 class constants:
     LOGIN_URL = "https://fcmenu-iad-regionalized.corp.amazon.com/login"
-    CHROME_PATH = r"C:\Users\nuneadon\AppData\Local\Google\Chrome\Application\chrome.exe"
+    CHROME_PATH = chromeFinder().configFile(chromeFinder().find_chrome_path())
     ARGUMENTS = ['--log-level=3','--force-device-scale-factor=0.7','--disable-blink-features=AutomationControlled','--disable-notifications','--disable-infobars','--disable-extensions','--disable-dev-shm-usage','--disable-gpu','--disable-browser-side-navigation','--disable-features=VizDisplayCompositor','--no-sandbox','--disable-logging']
+class header:  
+    SCAN = ['Scan container', 'Scan item']
+    SELECT = ['Select item to delete', 'Scan item', 'Select item']
+    QUANTITY = ['Enter quantity']
+    DESTINATION_CONTAINER = ['Scan destination container']
+    REASON = ['Select reason to delete','Select deletion reason']
+    CONFIRM = 'Confirm the deletion'
+
+class Container:
+    class inventory:
+        container = 'Container'
+        asin = 'ASIN'
+        fnsku = 'FNSku'
+        fcsku = 'FCSku'
+        LPN = 'LPN'
+        quantity = 'Quantity'
+        disposition = 'Disposition'
+        consumer = 'Consumer'
+        consumerid = 'Consumer ID'
+        outerlocation = 'Outer Location'
+        outerlocationtype = 'Outer Location Type'
+        title = 'Title'
+
+    class container_history:
+        # first row
+        move_date = "Move Date"
+        action = "Action"
+        movedBy = "Move By"
+        oldContainer = "Old Container"
+        newContainer = "New Container"
+        requestByClient = "Request By Client"
+        # second row
+        move_date_2 = "Move Date 2"
+        action_2 = "Action 2"
+        movedBy_2 = "Move by 2"
+        oldContainer_2 = "Old Container 2"
+        newContainer_2 = "New Container 2"
+        requestByClient_2 = "Request by Client 2"
+        # third row
+        move_date_3 = "Move Date 3"
+        action_3 = "Action 3"
+        movedBy_3 = "Move By 3"
+        oldContainer_3 = "Old Container 3"
+        newContainer_3 = "New Container 3"
+        requestByClient_3 = "Request by Client 3"
 
 class locator:
     body = '/html/body'
@@ -91,7 +221,6 @@ class locator:
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
-            
             class unbind:
                 input = '/html/body/div[2]/div/input'
                 continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
@@ -109,7 +238,11 @@ class locator:
                 inventory = "/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table"
                 title_row = "/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table/tbody/tr[2]/th"
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
+                child_containers_table = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table"
+                child_containers_table_first_row = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[1]"
 
+                class container_history:
+                    last_move_login = "/html/body/div[2]/div/div[1]/div/div[8]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr[1]/td[3]"
             class pickUI:
                 no_batch = '/html/body/div[1]/div[5]/ul/li[2]/a'
                 input = '/html/body/div[1]/div[5]/form/input[6]'
@@ -149,6 +282,17 @@ class locator:
 
         class fc_andons:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div'
+            filter_by_keyword = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/awsui-input/div/input'
+            select_first_andon = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr/td[1]/awsui-radio-button/div/label/input"
+            assign_andon = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr/td[12]/span/awsui-button/button"
+            view_edit = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[1]/span/div/div[2]/awsui-button[2]/button"
+            label_resolveBox = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[4]/div/div/div/div/span/awsui-checkbox/label"
+            resolve_box = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[4]/div/div/div/div/span/awsui-checkbox/label/input"
+            save_changes = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[3]/span/div/div[2]/awsui-button[2]"
+            search_submit = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-form-section/div/div[2]/span/awsui-form/div/div[4]/span/div/div[2]/div/awsui-button[2]/button"
+            count_search_result = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/span"
+            login_input = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[2]/div/div/div/div/span/awsui-input/div/input"
+            userlogin = "/html/body/div/div/div/header/ul/li[3]"
 
     class class_name:
 
@@ -177,6 +321,9 @@ class locator:
             no_batch = 'button button--size-md button--variant-secondary button--fluid'
             bin = 'greyed-text'
 
+        class barcodeGenerator:
+            print_btn = "apmbutton"
+
     class ID:
         
         class delete:
@@ -185,11 +332,15 @@ class locator:
         class pick:
             spinner = 'spinner'
 
-class header:  
-    SCAN = ['Scan container', 'Scan item']
-    SELECT = ['Select item to delete', 'Scan item', 'Select item']
-    QUANTITY = ['Enter quantity']
-    DESTINATION_CONTAINER = ['Scan destination container']
-    REASON = ['Select reason to delete','Select deletion reason']
-    CONFIRM = 'Confirm the deletion'
+        class fcresearch:
+            class container_history:
+                table = 'table-container-history'
+            
+            class container_details:
+                table = "container-hierarchy-status"
+
+        class barcodeGenerator:
+            barcodeEntry = "barcodedata"
+            displayText = "displaytext"
+            badgeID = "badgeid"
 
