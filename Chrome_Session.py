@@ -38,13 +38,14 @@ CHROME_PATH = constants.CHROME_PATH
 ARGUMENTS = constants.ARGUMENTS
 
 class chromeSession():
-    def __init__(self, site: str, badge: int):
+    def __init__(self, site: str, badge: int, port: int):
         """Sideline Shorting, DeleteItems App, PickUI and other ICQA related data scrapping. Use close() method to end chrome process"""
         self.step = int
         self.driver = None
         self.badge = str(badge)
         self.site = str(site).upper()
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
+        self.port = port
         self.start()
 
     def install_module(self, module_name: str) -> None:
@@ -74,17 +75,19 @@ class chromeSession():
                 exception_count += 1
                 # logging.error(f'WebDriverException #{exception_count}:\n Error in loading URL:: {se.msg}\n')
 
-    def launch_chrome_with_remote_debugging(self, port) -> None:
+
+    
+    
+    def launch_chrome_with_remote_debugging(self) -> None:
         import subprocess
         chrome_path = CHROME_PATH
-        subprocess.Popen([chrome_path, f"--remote-debugging-port={port}"])
+        subprocess.Popen([chrome_path, f"--remote-debugging-port={self.port}"])
 
     def start(self) -> object:
         """Starts a Chrome browser session"""
         
         self.install_module('selenium')
-        self.port = 9200
-        self.launch_chrome_with_remote_debugging(self.port)
+        self.launch_chrome_with_remote_debugging()
         optionals = ChromeOptions()
         for arg in ARGUMENTS:
             optionals.add_argument(arg)
@@ -95,10 +98,11 @@ class chromeSession():
         self.FCMenu_login(self.badge)
 
     def FCMenu_login(self, badge: str) -> None:
-        self.navigate(LOGIN_URL)
-        loginBadge = badge
-        input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
-        self.HELPER_type_and_click(input_element, loginBadge)
+        self.navigate("https://www.youtube.com")
+        # self.navigate(LOGIN_URL)
+        # loginBadge = badge
+        # input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
+        # self.HELPER_type_and_click(input_element, loginBadge)
 
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""

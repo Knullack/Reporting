@@ -1,5 +1,6 @@
 import sys
 import os
+from threading import Thread
 from typing import Literal
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Chrome_Session import chromeSession
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     def print_andons(bin_ids: list):
         for i, bin in enumerate(bin_ids, start=1):
             print(f"{i}/{len(bin_ids)}) // { (i/(len(bin_ids)) * 100):.2f}% / {bin} // {runtime(session.print_andons, bin, "http://localhost:5965/barcodegenerator")}")
+
             
     # deleteItem(list_containers, mode='container')
     # sideline(list_containers)
