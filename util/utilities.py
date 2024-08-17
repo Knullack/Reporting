@@ -24,8 +24,19 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
     
     return (runtime_print, return_value) if return_value is not None else runtime_print
 
-def dir_exists(DirPath) -> bool:
-    return os.path.exists(DirPath) and os.path.isdir(DirPath)
+class andon_types:
+    all = "All+types&status=Open"
+    binDoesNotExist = "Bin+does+not+Exist&status=Open"
+    brokenSet = "Broken+Set&status=Open"
+    damagedItem = "Damaged+Item&status=Open"
+    noBinDivider = "No+Bin+Divider&status=Open"
+    noScannableBarcode = "No+Scannable+Barcode&status=Open"    
+    noScannableBinLabel = "No+Scannable+Bin+Label&status=Open"
+    suspectTheft = "Suspect+Theft&status=Open"
+    unexpectedContainerOverage = "Unexpected+Container+Overage&status=Open"
+    unsafeToCount = "Unsafe+to+Count&status=Open"
+
+
 
 class chromeFinder:
     __storage_file__ = 'local_storage.ini'
