@@ -24,7 +24,7 @@ try:
     from selenium.webdriver import Chrome
     from selenium.webdriver.remote.webelement import WebElement
     from typing import Literal, Union
-    from util.utilities import locator, header, constants, Container
+    from util.utilities import locator, header, constants, Container, andon_types
 except ImportError as e:
     missing_module = str(e).split("'")[1]
     print(f"Module '{missing_module}' is not installed. Installing...")
@@ -1463,7 +1463,7 @@ class chromeSession():
         else:
             csv_write(container)
 
-    def andons(self, bin_id):
+    def andons(self, bin_id, type):
         def click_assign_andon():
             try:
                 assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
@@ -1531,7 +1531,7 @@ class chromeSession():
             except TimeoutException:
                 print("save element not found")
 
-        URL = "http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type=All+types"
+        URL = f"http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
         
@@ -1554,6 +1554,7 @@ class chromeSession():
         
         click_assign_andon()
         click_first_andon()
+        time.sleep(1)
         click_view_edit()
         time.sleep(1)
         # ensure_login(userlogin)
@@ -1563,7 +1564,7 @@ class chromeSession():
         click_save()
 
 
-    def print_andons(self, bin_id: str, printing_url: str):
+    def print_andons(self, bin_id: str, printing_url: str, type):
         def printData(barcode, text, badge):
             barcode_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.barcodeEntry)))
             text_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.displayText)))
@@ -1612,7 +1613,7 @@ class chromeSession():
             try:
                 child_containers = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table))).text
                 if child_containers == "No child containers.":
-                    self.andons(bin_id)
+                    self.andons(bin_id, type)
                     return
                 else:
                     child_containers = child_containers.split(' ', 1)[0]
