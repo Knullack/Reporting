@@ -1,5 +1,6 @@
 import sys
 import os
+from threading import Thread
 from typing import Literal
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Chrome_Session import chromeSession
