@@ -4,7 +4,7 @@ from threading import Thread
 from typing import Literal
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Chrome_Session import chromeSession
-from util.utilities import runtime, Container, andon_types
+from util.utilities import runtime, andon_types
 
 class run():
     def __init__(self, chrome_session) -> None:

@@ -833,7 +833,7 @@ class chromeSession():
         """Delete items from rodeo"""
         
         def get_title(sku: str) -> str: 
-            self.navigate(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={sku}')
+            self.navigate(f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={sku}')
             try:
                 table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.table)))
                 rows = table.find_elements(By.XPATH, "//tr")
@@ -1307,7 +1307,7 @@ class chromeSession():
                    ]
 
         def goto_fcr() -> None:
-            FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
+            FCR = f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={container}'
             self.navigate(FCR)
 
         def checked_inventory() -> bool:
@@ -1535,7 +1535,7 @@ class chromeSession():
             except TimeoutException:
                 print("save element not found")
 
-        URL = f"http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type={type}"
+        URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
         
