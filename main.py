@@ -46,7 +46,7 @@ class run():
         self.instance.close()
 
 if __name__ == "__main__":
-    session = chromeSession('hdc3', 12730876)
+    session = chromeSession('hdc3', 12730876, 1922)
     instance = run(session)
 
     list_bins: list = [
