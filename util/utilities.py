@@ -32,6 +32,7 @@ class andon_types:
     noBinDivider = "No+Bin+Divider&status=Open"
     noScannableBarcode = "No+Scannable+Barcode&status=Open"    
     noScannableBinLabel = "No+Scannable+Bin+Label&status=Open"
+    multipleScannableBarcodes = 'Multiple+Scannable+Barcodes&status=Open'
     suspectTheft = "Suspect+Theft&status=Open"
     unexpectedContainerOverage = "Unexpected+Container+Overage&status=Open"
     unsafeToCount = "Unsafe+to+Count&status=Open"
