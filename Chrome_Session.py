@@ -98,11 +98,11 @@ class chromeSession():
         self.FCMenu_login(self.badge)
 
     def FCMenu_login(self, badge: str) -> None:
-        self.navigate("https://www.youtube.com")
-        # self.navigate(LOGIN_URL)
-        # loginBadge = badge
-        # input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
-        # self.HELPER_type_and_click(input_element, loginBadge)
+        self.navigate(LOGIN_URL)
+        self.navigate(LOGIN_URL)
+        loginBadge = badge
+        input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
+        self.HELPER_type_and_click(input_element, loginBadge)
 
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
@@ -1552,15 +1552,17 @@ class chromeSession():
             self.driver.refresh()
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
             count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
-        
+            keyword_search.clear()
+            keyword_search.send_keys(bin_id)
+            
         if "0" in count_search:
             return None
         
         click_assign_andon()
         click_first_andon()
-        time.sleep(1)
+        time.sleep(.2)
         click_view_edit()
-        time.sleep(1)
+        time.sleep(.8)
         # ensure_login(userlogin)
         # time.sleep(.7)
         click_resolve_box()
