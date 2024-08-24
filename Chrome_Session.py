@@ -1535,40 +1535,43 @@ class chromeSession():
             except TimeoutException:
                 print("save element not found")
 
+        def search_bin(bin):
+            keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
+            keyword_search.clear()
+            keyword_search.send_keys(bin)
+
+        def main():
+            click_assign_andon()
+            click_first_andon()
+            time.sleep(.2)
+            click_view_edit()
+            time.sleep(.8)
+            # ensure_login(userlogin)
+            # time.sleep(.7)
+            click_resolve_box()
+            # time.sleep(.7)
+            click_save()
+
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
         
         # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
-        keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
         WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
-        
-        keyword_search.clear()
-        keyword_search.send_keys(bin_id)
-        
+        search_bin(bin_id)
+
         try:
             count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
         except TimeoutException:
             self.driver.refresh()
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
             count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
-            keyword_search.clear()
-            keyword_search.send_keys(bin_id)
-            
+            search_bin(bin_id)
+
         if "0" in count_search:
             return None
         
-        click_assign_andon()
-        click_first_andon()
-        time.sleep(.2)
-        click_view_edit()
-        time.sleep(.8)
-        # ensure_login(userlogin)
-        # time.sleep(.7)
-        click_resolve_box()
-        # time.sleep(.7)
-        click_save()
-
+        main()
 
     def print_andons(self, bin_id: str, printing_url: str, type):
         def printData(barcode, text, badge):
