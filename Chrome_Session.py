@@ -38,7 +38,7 @@ CHROME_PATH = constants.CHROME_PATH
 ARGUMENTS = constants.ARGUMENTS
 
 class chromeSession():
-    def __init__(self, site: str, badge: int, port: int):
+    def __init__(self, site: str, badge: int, port: int, headless: bool):
         """Sideline Shorting, DeleteItems App, PickUI and other ICQA related data scrapping. Use close() method to end chrome process"""
         self.step = int
         self.driver = None
@@ -46,7 +46,7 @@ class chromeSession():
         self.site = str(site).upper()
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
         self.port = port
-        self.start()
+        self.start(headless)
 
     def install_module(self, module_name: str) -> None:
         try:
@@ -83,7 +83,7 @@ class chromeSession():
         chrome_path = CHROME_PATH
         subprocess.Popen([chrome_path, f"--remote-debugging-port={self.port}"])
 
-    def start(self) -> object:
+    def start(self, headless: bool) -> object:
         """Starts a Chrome browser session"""
         
         self.install_module('selenium')
@@ -91,6 +91,10 @@ class chromeSession():
         optionals = ChromeOptions()
         for arg in ARGUMENTS:
             optionals.add_argument(arg)
+
+        if headless:
+            optionals.add_argument("--headless")
+
         optionals.add_experimental_option("debuggerAddress", f"127.0.0.1:{self.port}")
 
         self.driver = Chrome(options=optionals)
@@ -1270,6 +1274,7 @@ class chromeSession():
         container_history_data_dict_2 = {}
         container_history_data_dict_3 = {}
         container_history_paired_data = {}
+        container_details_containers = {}
         csv_file = "consumer_status.csv"
         headers = [Container.inventory.container,
                    Container.inventory.asin,
@@ -1297,6 +1302,9 @@ class chromeSession():
                    Container.container_history.oldContainer_2,
                    Container.container_history.newContainer_2,
                    Container.container_history.requestByClient_2,
+
+                   Container.container_details.child1,
+                   Container.container_details.child2,
 
                 #    Container.container_history.move_date_3,
                 #    Container.container_history.action_3,
@@ -1395,70 +1403,183 @@ class chromeSession():
             
             return container_history_data_dict, container_history_data_dict_2, container_history_data_dict_3            
         
+        def container_details(target_dict: dict):
+            try:
+                container_details_table = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.ID, locator.ID.fcresearch.details.table))
+                )
+            except TimeoutException:
+                self.driver.refresh()
+                time.sleep(1)
+                try:
+                    container_details_table = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_details.table))
+                    )
+                except TimeoutException:
+                    target_dict[container] = {"error": "Unable to fetch details"}
+                    return target_dict
+
+            trows = container_details_table.find_elements(By.TAG_NAME, "tr")
+            num_rows_to_collect = len(trows)
+
+            # Initialize the container in the dictionary if not already present
+            if container not in target_dict:
+                target_dict[container] = {}
+
+            for i in range(num_rows_to_collect):  # +1 because 1st row comes up empty
+                if i == 0:
+                    continue
+                try:
+                    row = trows[i]
+                    if row.text == '':
+                        continue
+                    else:
+                        cells = row.find_elements(By.TAG_NAME, "td")
+                        # Use an index to give headers unique names or use your own naming convention
+                        for index, cell in enumerate(cells):
+                            if cell.text == "PALLET":
+                                continue
+                            header = f'child{index + 1}'  # Adjust header naming as needed
+                            target_dict[container][header] = cell.text
+
+                except (IndexError, StaleElementReferenceException):
+                    continue
+
+            return target_dict          
+
         def create_csv(filename: str):
             if not os.path.exists(filename):
                 with open(filename, "w"):
                     pass
                     
-        def data_pairing(dict_param, hist: bool, row: int):
+        def data_pairing(dict_param, hist: bool, row: int, target: dict):                # Determine headers to use based on the row index
+            if row == 0:
+                headers_to_use = headers[:11]
+            elif row == 1:
+                headers_to_use = headers[12:18]
+            elif row == 2:
+                headers_to_use = headers[18:23]
+            elif row == 3:
+                headers_to_use = headers[24:]
+            else:
+                headers_to_use = []  # Fallback if row is out of expected range
+        
+            # Prepare target_dict based on hist flag
             if hist:
-                target_dict = container_history_paired_data
-                if row == 1:
-                    headers_to_use = headers[12:18]
-                elif row == 2:
-                    headers_to_use = headers[18:]
+                target_dict = target
             else:
                 target_dict = container_paired_data
-                headers_to_use = headers  # Assuming these are the headers for non-history data
-            
+
+            # Process each item in dict_param
             for container, values in dict_param.items():
+                if container not in target_dict:
+                    target_dict[container] = {}
+                
+                # Ensure the number of headers and values match
+                if len(headers_to_use) != len(values):
+                    print(f"Warning: Header and values length mismatch for container {container}")
+                    continue
+                
+                # Update target_dict with headers and values
                 for header, value in zip(headers_to_use, values):
-                    target_dict.setdefault(container, {})[header] = value
+                    if isinstance(value, list):
+                        # If value is a list, process it appropriately
+                        value_dict = {header: val for header, val in zip(headers_to_use, value)}
+                        target_dict[container].update(value_dict)
+                    else:
+                        target_dict[container][header] = value
+
         
         def csv_write(cont):
             with open(csv_file, "a", newline="", encoding="utf-8") as file:
                 writer = csv.DictWriter(file, fieldnames=[head for head in headers])
                 if file.tell() == 0:
                     writer.writeheader()
-                if "No Inventory" in data:
-                    writer.writerow({Container.inventory.container: cont, Container.inventory.asin: "No Inventory"})
-                else:
-                    for _container, _ in data.items():
-                        stripped_container = _container.split("[")[0]
-                        writer.writerow({Container.inventory.container:                 container_paired_data[_container][Container.inventory.container], 
-                                         Container.inventory.asin:                      container_paired_data[_container][Container.inventory.asin], 
-                                         Container.inventory.fnsku:                     container_paired_data[_container][Container.inventory.fnsku], 
-                                         Container.inventory.fcsku:                     container_paired_data[_container][Container.inventory.fcsku], 
-                                         Container.inventory.LPN:                       container_paired_data[_container][Container.inventory.LPN], 
-                                         Container.inventory.quantity:                  container_paired_data[_container][Container.inventory.quantity], 
-                                         Container.inventory.consumer:                  container_paired_data[_container][Container.inventory.consumer], 
-                                         Container.inventory.outerlocation:             container_paired_data[_container][Container.inventory.outerlocation], 
-                                         Container.inventory.outerlocationtype:         container_paired_data[_container][Container.inventory.outerlocationtype], 
-                                         Container.inventory.title:                     container_paired_data[_container][Container.inventory.title],
-                                         Container.container_history.move_date:         container_history_paired_data[stripped_container][Container.container_history.move_date],
-                                         Container.container_history.action:            container_history_paired_data[stripped_container][Container.container_history.action],
-                                         Container.container_history.movedBy:           container_history_paired_data[stripped_container][Container.container_history.movedBy],
-                                         Container.container_history.oldContainer:      container_history_paired_data[stripped_container][Container.container_history.oldContainer],
-                                         Container.container_history.newContainer:      container_history_paired_data[stripped_container][Container.container_history.newContainer],
-                                         Container.container_history.requestByClient:   container_history_paired_data[stripped_container][Container.container_history.requestByClient],
-                                         
-                                         Container.container_history.move_date_2:       container_history_paired_data[stripped_container][Container.container_history.move_date_2],
-                                         Container.container_history.action_2:          container_history_paired_data[stripped_container][Container.container_history.action_2],
-                                         Container.container_history.movedBy_2:         container_history_paired_data[stripped_container][Container.container_history.movedBy_2],
-                                         Container.container_history.oldContainer_2:    container_history_paired_data[stripped_container][Container.container_history.oldContainer_2],
-                                         Container.container_history.newContainer_2:    container_history_paired_data[stripped_container][Container.container_history.newContainer_2],
-                                         Container.container_history.requestByClient_2: container_history_paired_data[stripped_container][Container.container_history.requestByClient_2]
-                                         })
+                if '-' in data.values():
+                    container_paired_data[cont].setdefault(Container.inventory.container, '')
+                    container_paired_data[cont].setdefault(Container.inventory.asin, '')
+                    container_paired_data[cont].setdefault(Container.inventory.fnsku, '')
+                    container_paired_data[cont].setdefault(Container.inventory.fcsku, '')
+                    container_paired_data[cont].setdefault(Container.inventory.LPN, '')
+                    container_paired_data[cont].setdefault(Container.inventory.quantity, '')
+                    container_paired_data[cont].setdefault(Container.inventory.consumer, '')
+                    container_paired_data[cont].setdefault(Container.inventory.outerlocation, '')
+                    container_paired_data[cont].setdefault(Container.inventory.outerlocationtype, '')
+                    container_paired_data[cont].setdefault(Container.inventory.title, '')
+                    
+                    container_paired_data[cont][Container.inventory.container] = cont
+                    container_paired_data[cont][Container.inventory.asin] = ''
+                    container_paired_data[cont][Container.inventory.fnsku] = ''
+                    container_paired_data[cont][Container.inventory.fcsku] = ''
+                    container_paired_data[cont][Container.inventory.LPN] = ''
+                    container_paired_data[cont][Container.inventory.quantity] = ''
+                    container_paired_data[cont][Container.inventory.consumer] = ''
+                    container_paired_data[cont][Container.inventory.outerlocation] = ''
+                    container_paired_data[cont][Container.inventory.outerlocationtype] = ''
+                    container_paired_data[cont][Container.inventory.title] = ''
+                    
+                    container_history_paired_data[cont][Container.container_history.move_date] = ''
+                    container_history_paired_data[cont][Container.container_history.action] = ''
+                    container_history_paired_data[cont][Container.container_history.movedBy] = ''
+                    container_history_paired_data[cont][Container.container_history.oldContainer] = ''
+                    container_history_paired_data[cont][Container.container_history.newContainer] = ''
+                    container_history_paired_data[cont][Container.container_history.requestByClient] = ''
+                    
+                    container_history_paired_data[cont][Container.container_history.move_date_2] = ''
+                    container_history_paired_data[cont][Container.container_history.action_2] = ''
+                    container_history_paired_data[cont][Container.container_history.movedBy_2] = ''
+                    container_history_paired_data[cont][Container.container_history.oldContainer_2] = ''
+                    container_history_paired_data[cont][Container.container_history.newContainer_2] = ''
+                    container_history_paired_data[cont][Container.container_history.requestByClient_2] = ''
+
+                    container_details_containers[cont].setdefault(Container.container_details.child1, '')
+                    container_details_containers[cont].setdefault(Container.container_details.child2, '')
+                    
+                for _container, _ in data.items():
+                    stripped_container = _container.split("[")[0]
+                    writer.writerow({Container.inventory.container:                 _container, 
+                                        Container.inventory.asin:                      container_paired_data[_container][Container.inventory.asin], 
+                                        Container.inventory.fnsku:                     container_paired_data[_container][Container.inventory.fnsku], 
+                                        Container.inventory.fcsku:                     container_paired_data[_container][Container.inventory.fcsku], 
+                                        Container.inventory.LPN:                       container_paired_data[_container][Container.inventory.LPN], 
+                                        Container.inventory.quantity:                  container_paired_data[_container][Container.inventory.quantity], 
+                                        Container.inventory.consumer:                  container_paired_data[_container][Container.inventory.consumer], 
+                                        Container.inventory.outerlocation:             container_paired_data[_container][Container.inventory.outerlocation], 
+                                        Container.inventory.outerlocationtype:         container_paired_data[_container][Container.inventory.outerlocationtype], 
+                                        Container.inventory.title:                     container_paired_data[_container][Container.inventory.title],
+                                        Container.container_history.move_date:         container_history_paired_data[stripped_container][Container.container_history.move_date],
+                                        Container.container_history.action:            container_history_paired_data[stripped_container][Container.container_history.action],
+                                        Container.container_history.movedBy:           container_history_paired_data[stripped_container][Container.container_history.movedBy],
+                                        Container.container_history.oldContainer:      container_history_paired_data[stripped_container][Container.container_history.oldContainer],
+                                        Container.container_history.newContainer:      container_history_paired_data[stripped_container][Container.container_history.newContainer],
+                                        Container.container_history.requestByClient:   container_history_paired_data[stripped_container][Container.container_history.requestByClient],
+                                        
+                                        Container.container_history.move_date_2:       container_history_paired_data[stripped_container][Container.container_history.move_date_2],
+                                        Container.container_history.action_2:          container_history_paired_data[stripped_container][Container.container_history.action_2],
+                                        Container.container_history.movedBy_2:         container_history_paired_data[stripped_container][Container.container_history.movedBy_2],
+                                        Container.container_history.oldContainer_2:    container_history_paired_data[stripped_container][Container.container_history.oldContainer_2],
+                                        Container.container_history.newContainer_2:    container_history_paired_data[stripped_container][Container.container_history.newContainer_2],
+                                        Container.container_history.requestByClient_2: container_history_paired_data[stripped_container][Container.container_history.requestByClient_2],
+                                        Container.container_details.child1:            container_details_containers[_container][Container.container_details.child1],
+                                        Container.container_details.child2:            container_details_containers[_container][Container.container_details.child2]
+                                        })
         goto_fcr()
         create_csv(csv_file)
+        container_details(container_details_containers)
         data = consumer()
         cont_hist_data = container_history()
-        if data != "No Inventory":
-            data_pairing(data, hist=False, row = 1)  # Pair non-history data
+        if data != "No Inventory" or len(container_details_containers) > 0:
+            if len(container_details_containers) > 0:
+               data_pairing(container_details_containers, hist=True, row = 3, target=container_details_containers)
+            
+            if data == "No Inventory":
+                data = {container : '-'}
+            data_pairing(data, hist=False, row = 0, target=container_data_dict)  # Pair non-history data
 
             # Pair history data from all three dictionaries
-            data_pairing(cont_hist_data[0], hist=True, row = 1)
-            data_pairing(cont_hist_data[1], hist=True, row = 2)
+            data_pairing(cont_hist_data[0], hist=True, row = 1, target=container_history_paired_data)
+            data_pairing(cont_hist_data[1], hist=True, row = 2, target=container_history_paired_data)
+            data_pairing(container_details_containers, hist=True, row = 3, target=container_history_paired_data)
             # data_pairing(cont_hist_data[2], hist=True)
 
         if not write_to_csv:
@@ -1561,7 +1682,7 @@ class chromeSession():
         search_bin(bin_id)
 
         try:
-            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+            count_search = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
         except TimeoutException:
             self.driver.refresh()
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
@@ -1635,3 +1756,23 @@ class chromeSession():
                 time.sleep(1)
                 printData(paX, paX, "1")
                 time.sleep(1.5)
+        
+    def labor_track(self, code: str, badge_id: str):
+        self.navigate(f"https://fcmenu-iad-regionalized.corp.amazon.com/{self.site}/laborTrackingKiosk")
+        
+        def enter_code(calmCode: str):
+            ele_calmCode = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.calmCode)))
+            ele_calmCode.send_keys(calmCode)
+            ele_calmCode.send_keys(Keys.ENTER)
+
+        def enter_badge(badge: str):
+            ele_badge_id = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.badge_id)))
+            ele_badge_id.send_keys(badge)
+            ele_badge_id.send_keys(Keys.ENTER)
+
+        def submit():
+            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.submit))).click()
+
+        enter_code(code)
+        enter_badge(badge_id)
+        submit()

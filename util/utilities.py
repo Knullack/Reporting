@@ -166,6 +166,10 @@ class Container:
         newContainer_3 = "New Container 3"
         requestByClient_3 = "Request by Client 3"
 
+    class container_details:
+        child1 = "child1"
+        child2 = "child2"
+
 class locator:
     body = '/html/body'
     nav = '/html/body/nav'
@@ -233,6 +237,12 @@ class locator:
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+
+            class labor_tracking:
+                submit = "/html/body/div[3]/div/div[2]/form/input[4]"
+                calmCode = "/html/body/div[3]/div/div[3]/form/input[2]"
+                badge_id = "/html/body/div[3]/div/div[2]/form/input[3]"
+
             class unbind:
                 input = '/html/body/div[2]/div/input'
                 continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
@@ -350,6 +360,9 @@ class locator:
             
             class container_details:
                 table = "container-hierarchy-status"
+
+            class details:
+                table = "table-container-hierarchy"
 
         class barcodeGenerator:
             barcodeEntry = "barcodedata"
