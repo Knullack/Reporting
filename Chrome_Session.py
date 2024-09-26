@@ -1534,7 +1534,7 @@ class chromeSession():
 
                     container_details_containers[cont].setdefault(Container.container_details.child1, '')
                     container_details_containers[cont].setdefault(Container.container_details.child2, '')
-                    
+
                 for _container, _ in data.items():
                     stripped_container = _container.split("[")[0]
                     writer.writerow({Container.inventory.container:                 _container, 
@@ -1748,7 +1748,7 @@ class chromeSession():
                 else:
                     child_containers = child_containers.split(' ', 1)[0]
             except TimeoutException:
-                self.andons(bin_id)
+                self.andons(bin_id, type)
             if child_containers:
                 paX = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
                 self.navigate(printing_url)
