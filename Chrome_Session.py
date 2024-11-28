@@ -1,4 +1,5 @@
 try:
+    import re
     import pyautogui as pyg
     import keyboard
     import importlib
@@ -1232,33 +1233,46 @@ class chromeSession():
                             pass
             try:
                 body.send_keys('t')
+                print("Press T")
             except UnboundLocalError:
                 body = self.driver.find_element(By.XPATH, locator.body)
                 body.send_keys('t')
             try:
+                time.sleep(1)
                 input = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.input)))
                 input.clear()
+                print("clearing container")
             except ElementNotInteractableException:
-                body.send_keys('t')
-                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
+                self.driver.refresh()
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.body))).send_keys('t')
+                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.unbind.input)
 
             if input.is_displayed():
                 input.click()
                 input.send_keys(container_)
+                time.sleep(1)
                 input.send_keys(Keys.ENTER)
+                print("Unbound Request Sent")
         
         def continueC():
             try:
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
-                # Wait for success output
-                WebDriverWait(self.driver, 60).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
+                banner = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.double_check_banner))).text
+                if 'Are you sure you want to unbind all the following transshipment bindings' in banner:
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
+                    # Wait for success output
+                    WebDriverWait(self.driver, 15).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
             except ElementNotInteractableException:
-                if WebDriverWait(self.driver, 1).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.error_banner),'Error getting the binding summary. Please scan again')):
+                textContent = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.error_banner))).text
+                if 'Error getting the binding summary. Please scan again' in textContent or "Failed" in textContent:
                     self.driver.refresh()
                     enter_container(container)
                     continueC()
+                else:
+                    self.driver.refresh()
         goto_UI()
+        # time.sleep(3)
         enter_container(container)
+        # time.sleep(3)
         continueC()
 
     def get_container_data(self, container, *extract_value: Union[str, Container], **write_to_csv: bool):
@@ -1560,8 +1574,7 @@ class chromeSession():
                                         Container.container_history.oldContainer_2:    container_history_paired_data[stripped_container][Container.container_history.oldContainer_2],
                                         Container.container_history.newContainer_2:    container_history_paired_data[stripped_container][Container.container_history.newContainer_2],
                                         Container.container_history.requestByClient_2: container_history_paired_data[stripped_container][Container.container_history.requestByClient_2],
-                                        Container.container_details.child1:            container_details_containers[_container][Container.container_details.child1],
-                                        Container.container_details.child2:            container_details_containers[_container][Container.container_details.child2]
+
                                         })
         goto_fcr()
         create_csv(csv_file)
@@ -1660,7 +1673,7 @@ class chromeSession():
             keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
             keyword_search.clear()
             keyword_search.send_keys(bin)
-
+        
         def main():
             click_assign_andon()
             click_first_andon()
@@ -1673,10 +1686,64 @@ class chromeSession():
             # time.sleep(.7)
             click_save()
 
+        class container_overage_andons():
+            def __init__(self, outer_instance):
+                self.inst: chromeSession = outer_instance
+
+            def csX_from_comment(self, bin_id: str):
+                table = WebDriverWait(self.inst.driver).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
+                tableRows = table.find_elements(By.TAG_NAME, 'tr')
+                rowData = tableRows[1].find_elements(By.XPATH, 'td')
+                comment = rowData[10].find_element(By.TAG_NAME, 'span').text
+                match = re.search(r'csX[a-zA-Z]+', comment)
+                comment = match.group(0) if match else ""
+
+            def container_loaded(self, by: str, locator_str: str):
+                time.sleep(1)
+                while True:
+                    section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((by, locator_str)))
+                    class_name = self.driver.execute_script("return arguments[0].className;", section)
+                    if class_name == "loading failure":
+                        self.driver.refresh()
+                    elif class_name == "loading":
+                        continue
+                    elif class_name == "":
+                        children = section.find_elements(By.XPATH, "*")
+                        for child in children:
+                            if child.tag_name == "i":
+                                return False
+                            elif child.tag_name == "a":
+                                return True
+                            else:
+                                return None 
+                    else:
+                        continue
+            
+            def search_container(self, text):
+                keyword_search = WebDriverWait(self.inst.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
+                keyword_search.clear()
+                keyword_search.send_keys(text)
+
+            def subtract_days(self, date_str: str, days_to_subtract: int, date_format="%m/%d/%Y"):
+                original_date = datetime.strptime(date_str, date_format)
+                new_date = original_date - timedelta(days=days_to_subtract)
+                return new_date.strftime(date_format)
+            
+                    
+            def search_past_inv(self):
+                current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
+                updated_start_date = self.subtract_days(current_start_date.text, 180)
+                current_start_date.clear()
+                current_start_date.send_keys(updated_start_date)
+
+                inventory_section = self.inst.container_loaded(By.ID, locator.ID.fcresearch.inventory)
+                if inventory_section == False:
+                    pass
+
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
-        
+
         # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
         WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
         search_bin(bin_id)
@@ -1691,8 +1758,14 @@ class chromeSession():
 
         if "0" in count_search:
             return None
-        
-        main()
+
+        if type == andon_types.unexpectedContainerOverage:
+            COA = container_overage_andons
+            csX = COA.csX_from_comment
+            FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
+        else:
+            
+            main()
 
     def print_andons(self, bin_id: str, printing_url: str, type):
         def printData(barcode, text, badge):

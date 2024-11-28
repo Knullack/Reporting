@@ -236,7 +236,7 @@ class locator:
             move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
-            unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[4]/a'
 
             class labor_tracking:
                 submit = "/html/body/div[3]/div/div[2]/form/input[4]"
@@ -248,6 +248,7 @@ class locator:
                 continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
                 success_banner = '/html/body/div[1]/div[3]/div/div[2]/span[1]'
                 error_banner = '/html/body/div[1]/div[5]/div[2]/div[2]'
+                double_check_banner = '/html/body/div[1]/div[4]/div[2]/div[2]'
             class move_container:
                 individually_workflow = '/html/body/div/div/div/ul/li[2]'
                 input = '/html/body/div/div[7]/div/input'
@@ -315,6 +316,7 @@ class locator:
             count_search_result = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/span"
             login_input = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[2]/div/div/div/div/span/awsui-input/div/input"
             userlogin = "/html/body/div/div/div/header/ul/li[3]"
+            table = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table'
 
     class class_name:
 
@@ -355,8 +357,12 @@ class locator:
             spinner = 'spinner'
 
         class fcresearch:
+            class inventory:
+                table = 'inventory-status'
             class container_history:
                 table = 'table-container-history'
+            class inventory_history:
+                start_date = 'searchStart'
             
             class container_details:
                 table = "container-hierarchy-status"
