@@ -37,6 +37,10 @@ class andon_types:
     unexpectedContainerOverage = "Unexpected+Container+Overage&status=Open"
     unsafeToCount = "Unsafe+to+Count&status=Open"
 
+class tab_names:
+    ANDONS = "Andons"
+    FCR = 'FC Research'
+    ADD_ITEM = 'Add Items'
 
 
 class chromeFinder:
@@ -263,6 +267,7 @@ class locator:
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
                 child_containers_table = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table"
                 child_containers_table_first_row = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[1]"
+                inventory_section = '/html/body/div[2]/div/div[3]/div/div[2]/div/ul/li[6]'
 
                 class container_history:
                     last_move_login = "/html/body/div[2]/div/div[1]/div/div[8]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr[1]/td[3]"
@@ -320,6 +325,12 @@ class locator:
 
     class class_name:
 
+        class add_items:
+            continue_enter = 'a-button-input aft-scan-submit'
+
+        class fcmenu:
+            class fcresearch:
+                search_buttons = 'a-button-text'
         class itemApps:
             processing_visible = 'a-section aft-tool-processing aft-tool-status'
             processing_hidden = 'a-section aft-tool-hide aft-tool-processing aft-tool-status'
@@ -350,6 +361,8 @@ class locator:
 
     class ID:
         
+        class add_items:
+            container = 'containerScannableId'
         class delete:
             user_menu = 'a-page'
             user_menu_overlay = 'a-popover-1'
@@ -363,6 +376,8 @@ class locator:
                 table = 'table-container-history'
             class inventory_history:
                 start_date = 'searchStart'
+                entry_info = 'table-inventory-history_info'
+                entries_table = 'table-inventory-history'
             
             class container_details:
                 table = "container-hierarchy-status"

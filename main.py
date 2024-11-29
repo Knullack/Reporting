@@ -61,7 +61,7 @@ if __name__ == "__main__":
     instance = run(session)
 
     list_bins: list = [
-
+        'P-1-V102B590'
     ]
 
     list_containers: list = [
@@ -76,8 +76,8 @@ if __name__ == "__main__":
     # instance.rodeo_delete(dict_containers)
     # instance.sideline(list_containers)
     # instance.moveContainer(list_containers, destination='TRASH', dict=False)
-    instance.containerData(list_containers, '')
+    # instance.containerData(list_containers, '')
     # instance.unbind(list_containers)
-    # instance.resolve_andon(list_bins, andon_types.noScannableBarcode)
+    instance.resolve_andon(list_bins, andon_types.unexpectedContainerOverage)
     # instance.print_andons(list_bins, andon_types.noScannableBarcode)
     instance.close()

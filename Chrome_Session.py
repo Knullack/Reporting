@@ -25,7 +25,7 @@ try:
     from selenium.webdriver import Chrome
     from selenium.webdriver.remote.webelement import WebElement
     from typing import Literal, Union
-    from util.utilities import locator, header, constants, Container, andon_types
+    from util.utilities import locator, header, constants, Container, andon_types, tab_names
 except ImportError as e:
     missing_module = str(e).split("'")[1]
     print(f"Module '{missing_module}' is not installed. Installing...")
@@ -1687,28 +1687,25 @@ class chromeSession():
             # time.sleep(.7)
             click_save()
 
-        class container_overage_andons():
-            def __init__(self, outer_instance):
-                self.inst: chromeSession = outer_instance
+        def COA_csX_from_comment():
+            table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
+            tableRows = table.find_elements(By.TAG_NAME, 'tr')
+            rowData = tableRows[1].find_elements(By.XPATH, 'td')
+            comment = rowData[10].find_element(By.TAG_NAME, 'span').text
+            match = re.search(r'csX\w+', comment)
+            csX = match.group(0) if match else ""
+            return csX
 
-            def csX_from_comment(self, bin_id: str):
-                table = WebDriverWait(self.inst.driver).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
-                tableRows = table.find_elements(By.TAG_NAME, 'tr')
-                rowData = tableRows[1].find_elements(By.XPATH, 'td')
-                comment = rowData[10].find_element(By.TAG_NAME, 'span').text
-                match = re.search(r'csX[a-zA-Z]+', comment)
-                comment = match.group(0) if match else ""
-
-            def container_loaded(self, by: str, locator_str: str):
-                time.sleep(1)
-                while True:
+        def container_loaded(by: str, locator_str: str):
+            while True:
+                try:
                     section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((by, locator_str)))
                     class_name = self.driver.execute_script("return arguments[0].className;", section)
                     if class_name == "loading failure":
                         self.driver.refresh()
                     elif class_name == "loading":
                         continue
-                    elif class_name == "a-section-inventory": # DOUBLE CHECK THIS CLASS NAME *********************************
+                    elif class_name == "":
                         children = section.find_elements(By.XPATH, "*")
                         for child in children:
                             if child.tag_name == "i":
@@ -1719,32 +1716,64 @@ class chromeSession():
                                 return None 
                     else:
                         continue
+                except TimeoutException as e:
+                    self.driver.refresh()
+                    continue
             
-            def subtract_days(self, date_str: str, days_to_subtract: int, date_format="%m/%d/%Y"):
-                original_date = datetime.strptime(date_str, date_format)
-                new_date = original_date - timedelta(days=days_to_subtract)
-                return new_date.strftime(date_format)
+        def COA_subtract_days(date, days_to_subtract: int, date_format="%m/%d/%Y"):
+            original_date = datetime.strptime(date, date_format)
+            new_date = original_date - timedelta(days=days_to_subtract)
+            return new_date.strftime(date_format)
             
 
                     
-            def search_past_inv(self, csX: str) -> bool :
-                FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
+        def COA_search_past_inv(csX: str) -> bool :
+            FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
 
-                if self.driver.current_url != FCR:
-                    self.navigate(URL)
-                inventory_section = COA.container_loaded(By.ID, locator.ID.fcresearch.inventory.table)
-                if not inventory_section:
-                    current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
-                    updated_start_date = self.subtract_days(current_start_date.text, 180)
-                    current_start_date.clear()
-                    current_start_date.send_keys(updated_start_date)
+            if self.driver.current_url != FCR:
+                open_new_tab_and_switch(FCR, tab_names.FCR)
+            inventory_section = container_loaded(By.ID, locator.xpath.fcmenu.fcresearch.inventory_section)
+            if not inventory_section:
+                current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
+                updated_start_date = COA_subtract_days(datetime.now().strftime("%m/%d/%Y"), 180)
+                current_start_date.clear()
+                current_start_date.send_keys(updated_start_date)
+                search_btns = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.fcresearch.search_buttons)))
+                search_btns[1].click()
+            
 
-                    # button to hit search with new date
+        def open_new_tab_and_switch(url: str, tab_name: str):
+            original_window = self.driver.current_window_handle
+            tab_handles[tab_names.ANDONS] = original_window
+            self.driver.execute_script(f"window.open('{url}', '_blank');")
+            # all_handles = self.driver.window_handles
+            # new_tab = [handle for handle in all_handles if handle != original_window][-1]
+            tab_handles[tab_name] = self.driver.current_window_handle
+            # self.driver.switch_to.window(tab_handles[tab_name])
+            return
+        
+        def tab_switch(tab_name, optional_url=''):
+            if tab_name in tab_handles:
+                self.driver.switch_to.window(tab_handles[tab_name])
+            else:
+                open_new_tab_and_switch(optional_url, tab_name)
+
+        def get_FNSKU_Qty() -> tuple:
+            entry_count_info = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entry_info))).text.strip()
+            count = int(re.findall(r'\d+', entry_count_info)[-1]) if re.findall(r'\d+', entry_count_info) else 0
+            if count >= 1:
+                table =  WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entries_table)))
+                rows = table.find_elements(By.TAG_NAME, 'tr')
+                FNSKU = rows[1].find_elements(By.TAG_NAME, 'td')[4].text.strip()
+                qty = rows[1].find_elements(By.TAG_NAME, 'td')[7].text.strip()
+                return (FNSKU, qty)
+
 
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
 
+        tab_handles = {}
         
         # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
         search_bin(bin_id)
@@ -1763,15 +1792,23 @@ class chromeSession():
         if type == andon_types.unexpectedContainerOverage:
 
             # search for bin in andons site
-            COA = container_overage_andons
-            search_bin(bin_id)
-
             # get csX comment from the andon
-            csX = COA.csX_from_comment()
+            csX = COA_csX_from_comment()
 
             # search csX in FC Research
-        else:
+            COA_search_past_inv(csX)
+
+            # search table
+            fnsku_qty = get_FNSKU_Qty()
+
+            # Add Item inventory
+            open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
+
+            # Enter container
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.container))).send_keys(csX)
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.class_name.add_items.continue_enter))).click()
             
+        else:
             main()
 
     def print_andons(self, bin_id: str, printing_url: str, type):
