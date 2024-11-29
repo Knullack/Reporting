@@ -1670,6 +1670,7 @@ class chromeSession():
                 print("save element not found")
 
         def search_bin(bin):
+            WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
             keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
             keyword_search.clear()
             keyword_search.send_keys(bin)
@@ -1707,7 +1708,7 @@ class chromeSession():
                         self.driver.refresh()
                     elif class_name == "loading":
                         continue
-                    elif class_name == "":
+                    elif class_name == "a-section-inventory": # DOUBLE CHECK THIS CLASS NAME *********************************
                         children = section.find_elements(By.XPATH, "*")
                         for child in children:
                             if child.tag_name == "i":
@@ -1719,33 +1720,33 @@ class chromeSession():
                     else:
                         continue
             
-            def search_container(self, text):
-                keyword_search = WebDriverWait(self.inst.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
-                keyword_search.clear()
-                keyword_search.send_keys(text)
-
             def subtract_days(self, date_str: str, days_to_subtract: int, date_format="%m/%d/%Y"):
                 original_date = datetime.strptime(date_str, date_format)
                 new_date = original_date - timedelta(days=days_to_subtract)
                 return new_date.strftime(date_format)
             
-                    
-            def search_past_inv(self):
-                current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
-                updated_start_date = self.subtract_days(current_start_date.text, 180)
-                current_start_date.clear()
-                current_start_date.send_keys(updated_start_date)
 
-                inventory_section = self.inst.container_loaded(By.ID, locator.ID.fcresearch.inventory)
-                if inventory_section == False:
-                    pass
+                    
+            def search_past_inv(self, csX: str) -> bool :
+                FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
+
+                if self.driver.current_url != FCR:
+                    self.navigate(URL)
+                inventory_section = COA.container_loaded(By.ID, locator.ID.fcresearch.inventory.table)
+                if not inventory_section:
+                    current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
+                    updated_start_date = self.subtract_days(current_start_date.text, 180)
+                    current_start_date.clear()
+                    current_start_date.send_keys(updated_start_date)
+
+                    # button to hit search with new date
 
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
 
+        
         # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
-        WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
         search_bin(bin_id)
 
         try:
@@ -1760,9 +1761,15 @@ class chromeSession():
             return None
 
         if type == andon_types.unexpectedContainerOverage:
+
+            # search for bin in andons site
             COA = container_overage_andons
-            csX = COA.csX_from_comment
-            FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
+            search_bin(bin_id)
+
+            # get csX comment from the andon
+            csX = COA.csX_from_comment()
+
+            # search csX in FC Research
         else:
             
             main()
