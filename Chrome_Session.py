@@ -1103,8 +1103,12 @@ class chromeSession():
         self.navigate(move_URL) if self.driver.current_url != move_URL else None
         if self.driver.current_url != move_URL:
             # Lands at FC Menu - does not navigate - reason unknown
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.inbound))).click() # inbound
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container_145))).click() # move container (145)
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound))).click() # inbound
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container_146))).click()
+            body = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.body)))
+            body.send_keys(Keys.TAB)
+            focused_element = self.driver.switch_to.active_element
+            focused_element.click()
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.individually_workflow))).click() # move container individually
         try:
             ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
@@ -1169,6 +1173,7 @@ class chromeSession():
                 enter_container(container)
                 if validate_container():
                     WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    time.sleep(1.5)
                     enter_container(destination)
                     msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
                     if msg == "":
@@ -1602,6 +1607,7 @@ class chromeSession():
             csv_write(container)
 
     def andons(self, bin_id, type):
+        fnsku_qty = None
         def click_assign_andon():
             try:
                 assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
@@ -1696,10 +1702,20 @@ class chromeSession():
             csX = match.group(0) if match else ""
             return csX
 
-        def container_loaded(by: str, locator_str: str):
+        def container_loaded(by: By, locator_str: locator):
+            section = None
+            unclickable_section = None
             while True:
                 try:
-                    section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((by, locator_str)))
+                    tab_switch(tab_handles[tab_names.FCR])
+                    section = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((by, locator_str)))
+                except TimeoutException:
+                    unclickable_section = WebDriverWait(self.driver, 5).until_not(EC.element_to_be_clickable((by, locator_str)))
+                    unclickable_section = True
+                    
+                if unclickable_section:
+                    return False
+                else:
                     class_name = self.driver.execute_script("return arguments[0].className;", section)
                     if class_name == "loading failure":
                         self.driver.refresh()
@@ -1716,10 +1732,7 @@ class chromeSession():
                                 return None 
                     else:
                         continue
-                except TimeoutException as e:
-                    self.driver.refresh()
-                    continue
-            
+
         def COA_subtract_days(date, days_to_subtract: int, date_format="%m/%d/%Y"):
             original_date = datetime.strptime(date, date_format)
             new_date = original_date - timedelta(days=days_to_subtract)
@@ -1732,7 +1745,7 @@ class chromeSession():
 
             if self.driver.current_url != FCR:
                 open_new_tab_and_switch(FCR, tab_names.FCR)
-            inventory_section = container_loaded(By.ID, locator.xpath.fcmenu.fcresearch.inventory_section)
+            inventory_section = container_loaded(By.ID, locator.ID.fcresearch.inventory.table)
             if not inventory_section:
                 current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
                 updated_start_date = COA_subtract_days(datetime.now().strftime("%m/%d/%Y"), 180)
@@ -1740,21 +1753,26 @@ class chromeSession():
                 current_start_date.send_keys(updated_start_date)
                 search_btns = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.fcresearch.search_buttons)))
                 search_btns[1].click()
+                return False
+            else:
+                return True
             
 
         def open_new_tab_and_switch(url: str, tab_name: str):
             original_window = self.driver.current_window_handle
-            tab_handles[tab_names.ANDONS] = original_window
+            if self.driver.title == 'FC Problem Solve - Andons':
+                tab_handles[tab_names.ANDONS] = original_window
+
             self.driver.execute_script(f"window.open('{url}', '_blank');")
-            # all_handles = self.driver.window_handles
-            # new_tab = [handle for handle in all_handles if handle != original_window][-1]
-            tab_handles[tab_name] = self.driver.current_window_handle
-            # self.driver.switch_to.window(tab_handles[tab_name])
+            all_handles = self.driver.window_handles
+            new_tab = [handle for handle in all_handles if handle != original_window][-1]
+            tab_handles[tab_name] = new_tab
+            self.driver.switch_to.window(tab_handles[tab_name])
             return
         
         def tab_switch(tab_name, optional_url=''):
-            if tab_name in tab_handles:
-                self.driver.switch_to.window(tab_handles[tab_name])
+            if tab_name in tab_handles.values():
+                self.driver.switch_to.window(tab_name)
             else:
                 open_new_tab_and_switch(optional_url, tab_name)
 
@@ -1768,6 +1786,66 @@ class chromeSession():
                 qty = rows[1].find_elements(By.TAG_NAME, 'td')[7].text.strip()
                 return (FNSKU, qty)
 
+        def add_inventory():
+            def container():
+                # type container
+                container_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.container)))
+                container_entry.clear()
+                # Enter (continue)
+                while True:
+                    container_entry.send_keys(csX)
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.continue_enter))).click()
+                    alert = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.container_not_found_alert)))
+                    if alert.text == f"Container {csX} not found.":
+                        open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', 'Sideline')
+                        sideline_wakeup()
+                        tab_switch(tab_handles[tab_names.ADD_ITEM])
+                    else:
+                        break
+            def item():
+                # enter item
+                item_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.item)))
+                item_entry.clear()
+                item_entry.send_keys(fnsku_qty[0])
+                item_entry.send_keys(Keys.ENTER)
+            
+            def qty():
+                update_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.update_qty_btn)))
+                update_qty.click()
+                qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
+                qty_entry.clear()
+                qty_entry.send_keys(fnsku_qty[1])
+                qty_entry.send_keys(Keys.ENTER)
+            
+            def scan_dest_container():
+                dest_container = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.dest_container)))
+                dest_container.clear()
+                dest_container.send_keys(csX)
+                dest_container.send_keys(Keys.ENTER)
+
+            def start_over():
+                start_over_o = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.start_over_btn)))
+                start_over_o.click()
+
+            container()
+            item()
+            qty()
+            scan_dest_container()
+            start_over()
+
+        def move_case_to(container, destination):
+            URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
+            open_new_tab_and_switch(URL, tab_names.MOVE_CONTAINER)
+            self.move_container(200, container, destination)
+
+        def sideline_wakeup():
+            source_container = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
+            source_container.send_keys(csX)
+            source_container.send_keys(Keys.ENTER)
+            alert_div = WebDriverWait(self.driver, 5).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.sideline.alert_div)))
+            if alert_div:
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.container_overage_btn))).click()
+            pass
 
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
@@ -1790,24 +1868,36 @@ class chromeSession():
             return None
 
         if type == andon_types.unexpectedContainerOverage:
-
-            # search for bin in andons site
             # get csX comment from the andon
             csX = COA_csX_from_comment()
-
+            
             # search csX in FC Research
-            COA_search_past_inv(csX)
+            if COA_search_past_inv(csX):
+                # if already has inventory for whatever reason
+
+                # move case to dz
+                move_case_to(csX, 'dz-R-ICQA-WIP')
+                # resolve andon if current csX has inventory
+                main()
+                return
+            
 
             # search table
             fnsku_qty = get_FNSKU_Qty()
-
+            # sideline_wakeup()
+            move_case_to(csX, 'dz-R-ICQA-WIP')
             # Add Item inventory
-            open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
-
-            # Enter container
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.container))).send_keys(csX)
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.class_name.add_items.continue_enter))).click()
             
+            open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
+            
+            add_inventory()
+
+            tab_switch(tab_handles[tab_names.ANDONS])
+
+            main()
+            
+            return
+                        
         else:
             main()
 

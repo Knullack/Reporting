@@ -41,7 +41,7 @@ class tab_names:
     ANDONS = "Andons"
     FCR = 'FC Research'
     ADD_ITEM = 'Add Items'
-
+    MOVE_CONTAINER = 'Move Container'
 
 class chromeFinder:
     __storage_file__ = 'local_storage.ini'
@@ -186,6 +186,7 @@ class locator:
             confirmed = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span'
             confirmation_div_overlay = '/html/body/div[4]/div/div/div'
             main_panel = '/html/body/div[1]/div/div/div[2]/div/div[1]'
+            container_overage_btn = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[3]/button'
         class counts:
             time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
             iframe = '/html/body/div/iframe'
@@ -238,6 +239,7 @@ class locator:
             outbound = '/html/body/div[3]/div/div[2]/ul[1]/li[2]/a'
             picking = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            move_container_146 = '/html/body/div[3]/div/div[2]/ul[1]/li[3]/a'
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[4]/a'
@@ -302,8 +304,12 @@ class locator:
                     scan_vehicle_id_span = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div[1]/div/div[1]/div/span'
                     input = ''
                     next_bin = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div[2]/div/div/div/div/span/span[2]'
-                    
-
+            
+            class add_items:
+                continue_enter = '/html/body/div[1]/div[3]/form/span/span/input'
+                container_not_found_alert = '/html/body/div[1]/div[3]/form/div[2]/div/div'
+                update_qty_btn = '/html/body/div[1]/div[3]/form[2]/span/span/input'
+                start_over_btn = '/html/body/div[1]/div[3]/form[2]/span/span/input'
         class picking_console:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span'
             table = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]'
@@ -331,6 +337,9 @@ class locator:
         class fcmenu:
             class fcresearch:
                 search_buttons = 'a-button-text'
+            
+            class sideline:
+                alert_div = 'alert--error'
         class itemApps:
             processing_visible = 'a-section aft-tool-processing aft-tool-status'
             processing_hidden = 'a-section aft-tool-hide aft-tool-processing aft-tool-status'
@@ -363,6 +372,9 @@ class locator:
         
         class add_items:
             container = 'containerScannableId'
+            item = 'itemScannableId'
+            itemQTY = 'itemQuantity'
+            dest_container = 'destinationContainerId'
         class delete:
             user_menu = 'a-page'
             user_menu_overlay = 'a-popover-1'
