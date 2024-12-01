@@ -61,7 +61,7 @@ if __name__ == "__main__":
     instance = run(session)
 
     list_bins: list = [
-        'P-1-V102B590'
+
     ]
 
     list_containers: list = [
