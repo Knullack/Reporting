@@ -47,6 +47,7 @@ class chromeSession():
         self.site = str(site).upper()
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
         self.port = port
+        self.tab_handles = {}
         self.start(headless)
 
     def install_module(self, module_name: str) -> None:
@@ -1115,7 +1116,7 @@ class chromeSession():
         except TimeoutException:
             self.driver.refresh()
             ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
-        
+        self.driver.refresh()
         def enter_container(container_):
             try:
                 # time.sleep(1)
@@ -1144,7 +1145,12 @@ class chromeSession():
                 input.clear()
             except ElementNotInteractableException:
                 body.send_keys('t')
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+            try:
+                WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+            except TimeoutException:
+                self.driver.refresh()
+                WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+
             if input.is_displayed():
                 input.send_keys(container_)
                 time.sleep(.4)
@@ -1172,14 +1178,22 @@ class chromeSession():
             if workflow == 200:
                 enter_container(container)
                 if validate_container():
-                    WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
-                    time.sleep(1.5)
+                    try:
+                        WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    except TimeoutException:
+                        active_exception = WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.ID, locator.ID.fcmenu.move_container.exception_body), 'Try scanning the container again, or scan a different container.'))
+                        if active_exception:
+                            enter_container(container)
+                            validate_container()
+                            WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    # time.sleep(1.5)
                     enter_container(destination)
                     msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
                     if msg == "":
                         msg = destination
-                    print(f'{container} -> "{msg}"')
-                    if msg in move_fails:
+                        print(f'{container} -> "{msg}"')
+                        return True
+                    elif msg in move_fails:
                         input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
                         for i in range(2):
                             time.sleep(1.2)
@@ -1192,6 +1206,7 @@ class chromeSession():
                         time.sleep(.5)
                 else:
                     print(f'{container} -> Failed Move // No Inventory')
+                    return False
             elif workflow == 300:
                 enter_container(container)
                 for i in range(2):
@@ -1675,6 +1690,7 @@ class chromeSession():
             except TimeoutException:
                 print("save element not found")
 
+
         def search_bin(bin):
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
             keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
@@ -1693,6 +1709,33 @@ class chromeSession():
             # time.sleep(.7)
             click_save()
 
+        def comment_need_asin():
+            def comment(csX: str, comment: str):
+                box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.comment_input)))
+                box.clear()
+                box.send_keys(f"{csX} : {comment}")
+                select_4th_option()
+
+            def select_4th_option():
+                body = self.driver.find_element(By.XPATH, locator.body)
+                for _ in range (2):
+                    body.send_keys(Keys.SHIFT + Keys.TAB)
+
+                dropdown = self.driver.switch_to.active_element
+                dropdown.click()
+                for _ in range(4):
+                    dropdown.send_keys(Keys.DOWN)
+                dropdown.send_keys(Keys.SPACE)
+
+            click_first_andon()
+            time.sleep(2)
+            click_view_edit()
+            time.sleep(.8)
+            comment(csX, "No Inventory History")
+            time.sleep(2)
+            click_save()
+
+
         def COA_csX_from_comment():
             table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
             tableRows = table.find_elements(By.TAG_NAME, 'tr')
@@ -1707,7 +1750,7 @@ class chromeSession():
             unclickable_section = None
             while True:
                 try:
-                    tab_switch(tab_handles[tab_names.FCR])
+                    tab_switch(self.tab_handles[tab_names.FCR])
                     section = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((by, locator_str)))
                 except TimeoutException:
                     unclickable_section = WebDriverWait(self.driver, 5).until_not(EC.element_to_be_clickable((by, locator_str)))
@@ -1740,11 +1783,13 @@ class chromeSession():
             
 
                     
-        def COA_search_past_inv(csX: str) -> bool :
+        def COA_search_past_inv(csX: str) -> Union[bool, str]:
             FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
 
             if self.driver.current_url != FCR:
                 open_new_tab_and_switch(FCR, tab_names.FCR)
+            if self.driver.current_url != FCR:
+                self.navigate(FCR)
             inventory_section = container_loaded(By.ID, locator.ID.fcresearch.inventory.table)
             if not inventory_section:
                 current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
@@ -1753,28 +1798,40 @@ class chromeSession():
                 current_start_date.send_keys(updated_start_date)
                 search_btns = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.fcresearch.search_buttons)))
                 search_btns[1].click()
-                return False
+                table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entries_table)))
+                tds = table.find_elements(By.XPATH, ".//tbody//td")
+                if len(tds) >=2 :
+                    return False
+                elif len(tds) == 1:
+                    if tds[0].text == 'No matching records found':
+                        return "need asin"
             else:
                 return True
             
 
         def open_new_tab_and_switch(url: str, tab_name: str):
-            original_window = self.driver.current_window_handle
-            if self.driver.title == 'FC Problem Solve - Andons':
-                tab_handles[tab_names.ANDONS] = original_window
+            if tab_name in self.tab_handles:
+                self.driver.switch_to.window(self.tab_handles[tab_name])
+            else:
+                original_window = self.driver.window_handles[0]
+                if self.driver.title == 'FC Problem Solve - Andons':
+                    self.tab_handles[tab_names.ANDONS] = original_window
 
-            self.driver.execute_script(f"window.open('{url}', '_blank');")
-            all_handles = self.driver.window_handles
-            new_tab = [handle for handle in all_handles if handle != original_window][-1]
-            tab_handles[tab_name] = new_tab
-            self.driver.switch_to.window(tab_handles[tab_name])
+                self.driver.execute_script(f"window.open(\"{url}\", \"_blank\");")
+                all_handles = self.driver.window_handles
+                new_tab = [handle for handle in all_handles if handle != original_window][-1]
+                self.tab_handles[tab_name] = new_tab
+                self.driver.switch_to.window(self.tab_handles[tab_name])
+
             return
         
         def tab_switch(tab_name, optional_url=''):
-            if tab_name in tab_handles.values():
+            if tab_name in self.tab_handles.values():
                 self.driver.switch_to.window(tab_name)
             else:
-                open_new_tab_and_switch(optional_url, tab_name)
+                open_new_tab_and_switch(tab_name, optional_url)
+
+           
 
         def get_FNSKU_Qty() -> tuple:
             entry_count_info = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entry_info))).text.strip()
@@ -1797,9 +1854,9 @@ class chromeSession():
                     WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.continue_enter))).click()
                     alert = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.container_not_found_alert)))
                     if alert.text == f"Container {csX} not found.":
-                        open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', 'Sideline')
+                        open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', tab_names.SIDELINE)
                         sideline_wakeup()
-                        tab_switch(tab_handles[tab_names.ADD_ITEM])
+                        tab_switch(self.tab_handles[tab_names.ADD_ITEM])
                     else:
                         break
             def item():
@@ -1816,6 +1873,18 @@ class chromeSession():
                 qty_entry.clear()
                 qty_entry.send_keys(fnsku_qty[1])
                 qty_entry.send_keys(Keys.ENTER)
+                # check for confirmation of qty (if shown)
+                try:
+                    label = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "//label[@for='destinationContainerId']")))
+                except TimeoutException:
+                    label = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "//label[@for='itemQuantity']")))
+                if label.text == 'Scan destination container':
+                    pass
+                else:
+                    qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
+                    qty_entry.clear()
+                    qty_entry.send_keys(fnsku_qty[1])
+                    qty_entry.send_keys(Keys.ENTER)
             
             def scan_dest_container():
                 dest_container = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.dest_container)))
@@ -1836,22 +1905,39 @@ class chromeSession():
         def move_case_to(container, destination):
             URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
             open_new_tab_and_switch(URL, tab_names.MOVE_CONTAINER)
-            self.move_container(200, container, destination)
+            return self.move_container(200, container, destination)
 
         def sideline_wakeup():
+            def get_step():
+                text =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.source_container))).text
+                if text == "":
+                    return 'scan container'
+                elif text == csX:
+                    text = 'item'
+                return text
+            try:
+                tab_switch(self.tab_handles[tab_names.SIDELINE])
+            except KeyError:
+                open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', tab_names.SIDELINE)
+            self.driver.refresh()
             source_container = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
             source_container.send_keys(csX)
             source_container.send_keys(Keys.ENTER)
-            alert_div = WebDriverWait(self.driver, 5).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.sideline.alert_div)))
-            if alert_div:
+            step = get_step()
+            time.sleep(1)
+            # if WebDriverWait(self.driver, 10).until(EC.)
+            try:
+                alert_div = WebDriverWait(self.driver, 2).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.sideline.alert_div)))                    
                 WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.container_overage_btn))).click()
-            pass
+                time.sleep(2)
+            except TimeoutException:
+                self.driver.refresh()
 
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
 
-        tab_handles = {}
+        
         
         # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
         search_bin(bin_id)
@@ -1863,36 +1949,45 @@ class chromeSession():
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
             count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
             search_bin(bin_id)
-
+        
         if "0" in count_search:
             return None
+        # elif "" in count_search:
+        #     return None
 
         if type == andon_types.unexpectedContainerOverage:
             # get csX comment from the andon
             csX = COA_csX_from_comment()
             
             # search csX in FC Research
-            if COA_search_past_inv(csX):
-                # if already has inventory for whatever reason
-
-                # move case to dz
-                move_case_to(csX, 'dz-R-ICQA-WIP')
-                # resolve andon if current csX has inventory
+            inv = COA_search_past_inv(csX)
+            if inv == True:
+                # move_case_to(csX, 'dz-R-ICQA-WIP')
+                tab_switch(self.tab_handles[tab_names.ANDONS])
                 main()
                 return
-            
+            elif inv == 'need asin':
+                tab_switch(self.tab_handles[tab_names.ANDONS])
+                comment_need_asin()
+                return
+            else: pass
 
             # search table
             fnsku_qty = get_FNSKU_Qty()
-            # sideline_wakeup()
-            move_case_to(csX, 'dz-R-ICQA-WIP')
+
+            while True:
+                sideline_wakeup()
+                moved = move_case_to(csX, 'dz-R-ICQA-WIP')
+                if moved:
+                    break
+                else: continue
             # Add Item inventory
             
             open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
             
             add_inventory()
 
-            tab_switch(tab_handles[tab_names.ANDONS])
+            tab_switch(self.tab_handles[tab_names.ANDONS])
 
             main()
             
