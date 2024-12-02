@@ -1,4 +1,5 @@
 try:
+    import re
     import pyautogui as pyg
     import keyboard
     import importlib
@@ -24,7 +25,7 @@ try:
     from selenium.webdriver import Chrome
     from selenium.webdriver.remote.webelement import WebElement
     from typing import Literal, Union
-    from util.utilities import locator, header, constants, Container
+    from util.utilities import locator, header, constants, Container, andon_types, tab_names
 except ImportError as e:
     missing_module = str(e).split("'")[1]
     print(f"Module '{missing_module}' is not installed. Installing...")
@@ -38,7 +39,7 @@ CHROME_PATH = constants.CHROME_PATH
 ARGUMENTS = constants.ARGUMENTS
 
 class chromeSession():
-    def __init__(self, site: str, badge: int, port: int):
+    def __init__(self, site: str, badge: int, port: int, headless: bool):
         """Sideline Shorting, DeleteItems App, PickUI and other ICQA related data scrapping. Use close() method to end chrome process"""
         self.step = int
         self.driver = None
@@ -46,7 +47,8 @@ class chromeSession():
         self.site = str(site).upper()
         self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
         self.port = port
-        self.start()
+        self.tab_handles = {}
+        self.start(headless)
 
     def install_module(self, module_name: str) -> None:
         try:
@@ -83,7 +85,7 @@ class chromeSession():
         chrome_path = CHROME_PATH
         subprocess.Popen([chrome_path, f"--remote-debugging-port={self.port}"])
 
-    def start(self) -> object:
+    def start(self, headless: bool) -> object:
         """Starts a Chrome browser session"""
         
         self.install_module('selenium')
@@ -91,6 +93,10 @@ class chromeSession():
         optionals = ChromeOptions()
         for arg in ARGUMENTS:
             optionals.add_argument(arg)
+
+        if headless:
+            optionals.add_argument("--headless")
+
         optionals.add_experimental_option("debuggerAddress", f"127.0.0.1:{self.port}")
 
         self.driver = Chrome(options=optionals)
@@ -98,11 +104,11 @@ class chromeSession():
         self.FCMenu_login(self.badge)
 
     def FCMenu_login(self, badge: str) -> None:
-        self.navigate("https://www.youtube.com")
-        # self.navigate(LOGIN_URL)
-        # loginBadge = badge
-        # input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
-        # self.HELPER_type_and_click(input_element, loginBadge)
+        self.navigate(LOGIN_URL)
+        self.navigate(LOGIN_URL)
+        loginBadge = badge
+        input_element = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.input_badge)
+        self.HELPER_type_and_click(input_element, loginBadge)
 
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
@@ -833,7 +839,7 @@ class chromeSession():
         """Delete items from rodeo"""
         
         def get_title(sku: str) -> str: 
-            self.navigate(f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={sku}')
+            self.navigate(f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={sku}')
             try:
                 table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.table)))
                 rows = table.find_elements(By.XPATH, "//tr")
@@ -1098,15 +1104,19 @@ class chromeSession():
         self.navigate(move_URL) if self.driver.current_url != move_URL else None
         if self.driver.current_url != move_URL:
             # Lands at FC Menu - does not navigate - reason unknown
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.inbound))).click() # inbound
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container_145))).click() # move container (145)
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.outbound))).click() # inbound
+            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container_146))).click()
+            body = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.body)))
+            body.send_keys(Keys.TAB)
+            focused_element = self.driver.switch_to.active_element
+            focused_element.click()
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.individually_workflow))).click() # move container individually
         try:
             ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
         except TimeoutException:
             self.driver.refresh()
             ready_to_move = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
-        
+        self.driver.refresh()
         def enter_container(container_):
             try:
                 # time.sleep(1)
@@ -1135,7 +1145,12 @@ class chromeSession():
                 input.clear()
             except ElementNotInteractableException:
                 body.send_keys('t')
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+            try:
+                WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+            except TimeoutException:
+                self.driver.refresh()
+                WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+
             if input.is_displayed():
                 input.send_keys(container_)
                 time.sleep(.4)
@@ -1163,13 +1178,22 @@ class chromeSession():
             if workflow == 200:
                 enter_container(container)
                 if validate_container():
-                    WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    try:
+                        WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    except TimeoutException:
+                        active_exception = WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.ID, locator.ID.fcmenu.move_container.exception_body), 'Try scanning the container again, or scan a different container.'))
+                        if active_exception:
+                            enter_container(container)
+                            validate_container()
+                            WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div/div[3]/div[2]/div[1]/div/div/h3'), 'Scan destination container'))
+                    # time.sleep(1.5)
                     enter_container(destination)
                     msg = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.error_msg))).text
                     if msg == "":
                         msg = destination
-                    print(f'{container} -> "{msg}"')
-                    if msg in move_fails:
+                        print(f'{container} -> "{msg}"')
+                        return True
+                    elif msg in move_fails:
                         input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
                         for i in range(2):
                             time.sleep(1.2)
@@ -1182,6 +1206,7 @@ class chromeSession():
                         time.sleep(.5)
                 else:
                     print(f'{container} -> Failed Move // No Inventory')
+                    return False
             elif workflow == 300:
                 enter_container(container)
                 for i in range(2):
@@ -1228,33 +1253,46 @@ class chromeSession():
                             pass
             try:
                 body.send_keys('t')
+                print("Press T")
             except UnboundLocalError:
                 body = self.driver.find_element(By.XPATH, locator.body)
                 body.send_keys('t')
             try:
+                time.sleep(1)
                 input = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.input)))
                 input.clear()
+                print("clearing container")
             except ElementNotInteractableException:
-                body.send_keys('t')
-                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.move_container.input)
+                self.driver.refresh()
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.body))).send_keys('t')
+                input = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.unbind.input)
 
             if input.is_displayed():
                 input.click()
                 input.send_keys(container_)
+                time.sleep(1)
                 input.send_keys(Keys.ENTER)
+                print("Unbound Request Sent")
         
         def continueC():
             try:
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
-                # Wait for success output
-                WebDriverWait(self.driver, 60).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
+                banner = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.double_check_banner))).text
+                if 'Are you sure you want to unbind all the following transshipment bindings' in banner:
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.continue_btn))).click()
+                    # Wait for success output
+                    WebDriverWait(self.driver, 15).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.success_banner),f'Successfully unbound {container}'))
             except ElementNotInteractableException:
-                if WebDriverWait(self.driver, 1).until(EC.text_to_be_present_in_element((By.XPATH, locator.xpath.fcmenu.unbind.error_banner),'Error getting the binding summary. Please scan again')):
+                textContent = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.unbind.error_banner))).text
+                if 'Error getting the binding summary. Please scan again' in textContent or "Failed" in textContent:
                     self.driver.refresh()
                     enter_container(container)
                     continueC()
+                else:
+                    self.driver.refresh()
         goto_UI()
+        # time.sleep(3)
         enter_container(container)
+        # time.sleep(3)
         continueC()
 
     def get_container_data(self, container, *extract_value: Union[str, Container], **write_to_csv: bool):
@@ -1270,6 +1308,7 @@ class chromeSession():
         container_history_data_dict_2 = {}
         container_history_data_dict_3 = {}
         container_history_paired_data = {}
+        container_details_containers = {}
         csv_file = "consumer_status.csv"
         headers = [Container.inventory.container,
                    Container.inventory.asin,
@@ -1298,6 +1337,9 @@ class chromeSession():
                    Container.container_history.newContainer_2,
                    Container.container_history.requestByClient_2,
 
+                   Container.container_details.child1,
+                   Container.container_details.child2,
+
                 #    Container.container_history.move_date_3,
                 #    Container.container_history.action_3,
                 #    Container.container_history.movedBy_3,
@@ -1307,7 +1349,7 @@ class chromeSession():
                    ]
 
         def goto_fcr() -> None:
-            FCR = f'https://fcresearch-na.aka.amazon.com/HDC3/results?s={container}'
+            FCR = f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={container}'
             self.navigate(FCR)
 
         def checked_inventory() -> bool:
@@ -1395,70 +1437,182 @@ class chromeSession():
             
             return container_history_data_dict, container_history_data_dict_2, container_history_data_dict_3            
         
+        def container_details(target_dict: dict):
+            try:
+                container_details_table = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.ID, locator.ID.fcresearch.details.table))
+                )
+            except TimeoutException:
+                self.driver.refresh()
+                time.sleep(1)
+                try:
+                    container_details_table = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.ID, locator.ID.fcresearch.container_details.table))
+                    )
+                except TimeoutException:
+                    target_dict[container] = {"error": "Unable to fetch details"}
+                    return target_dict
+
+            trows = container_details_table.find_elements(By.TAG_NAME, "tr")
+            num_rows_to_collect = len(trows)
+
+            # Initialize the container in the dictionary if not already present
+            if container not in target_dict:
+                target_dict[container] = {}
+
+            for i in range(num_rows_to_collect):  # +1 because 1st row comes up empty
+                if i == 0:
+                    continue
+                try:
+                    row = trows[i]
+                    if row.text == '':
+                        continue
+                    else:
+                        cells = row.find_elements(By.TAG_NAME, "td")
+                        # Use an index to give headers unique names or use your own naming convention
+                        for index, cell in enumerate(cells):
+                            if cell.text == "PALLET":
+                                continue
+                            header = f'child{index + 1}'  # Adjust header naming as needed
+                            target_dict[container][header] = cell.text
+
+                except (IndexError, StaleElementReferenceException):
+                    continue
+
+            return target_dict          
+
         def create_csv(filename: str):
             if not os.path.exists(filename):
                 with open(filename, "w"):
                     pass
                     
-        def data_pairing(dict_param, hist: bool, row: int):
+        def data_pairing(dict_param, hist: bool, row: int, target: dict):                # Determine headers to use based on the row index
+            if row == 0:
+                headers_to_use = headers[:11]
+            elif row == 1:
+                headers_to_use = headers[12:18]
+            elif row == 2:
+                headers_to_use = headers[18:23]
+            elif row == 3:
+                headers_to_use = headers[24:]
+            else:
+                headers_to_use = []  # Fallback if row is out of expected range
+        
+            # Prepare target_dict based on hist flag
             if hist:
-                target_dict = container_history_paired_data
-                if row == 1:
-                    headers_to_use = headers[12:18]
-                elif row == 2:
-                    headers_to_use = headers[18:]
+                target_dict = target
             else:
                 target_dict = container_paired_data
-                headers_to_use = headers  # Assuming these are the headers for non-history data
-            
+
+            # Process each item in dict_param
             for container, values in dict_param.items():
+                if container not in target_dict:
+                    target_dict[container] = {}
+                
+                # Ensure the number of headers and values match
+                if len(headers_to_use) != len(values):
+                    print(f"Warning: Header and values length mismatch for container {container}")
+                    continue
+                
+                # Update target_dict with headers and values
                 for header, value in zip(headers_to_use, values):
-                    target_dict.setdefault(container, {})[header] = value
+                    if isinstance(value, list):
+                        # If value is a list, process it appropriately
+                        value_dict = {header: val for header, val in zip(headers_to_use, value)}
+                        target_dict[container].update(value_dict)
+                    else:
+                        target_dict[container][header] = value
+
         
         def csv_write(cont):
             with open(csv_file, "a", newline="", encoding="utf-8") as file:
                 writer = csv.DictWriter(file, fieldnames=[head for head in headers])
                 if file.tell() == 0:
                     writer.writeheader()
-                if "No Inventory" in data:
-                    writer.writerow({Container.inventory.container: cont, Container.inventory.asin: "No Inventory"})
-                else:
-                    for _container, _ in data.items():
-                        stripped_container = _container.split("[")[0]
-                        writer.writerow({Container.inventory.container:                 container_paired_data[_container][Container.inventory.container], 
-                                         Container.inventory.asin:                      container_paired_data[_container][Container.inventory.asin], 
-                                         Container.inventory.fnsku:                     container_paired_data[_container][Container.inventory.fnsku], 
-                                         Container.inventory.fcsku:                     container_paired_data[_container][Container.inventory.fcsku], 
-                                         Container.inventory.LPN:                       container_paired_data[_container][Container.inventory.LPN], 
-                                         Container.inventory.quantity:                  container_paired_data[_container][Container.inventory.quantity], 
-                                         Container.inventory.consumer:                  container_paired_data[_container][Container.inventory.consumer], 
-                                         Container.inventory.outerlocation:             container_paired_data[_container][Container.inventory.outerlocation], 
-                                         Container.inventory.outerlocationtype:         container_paired_data[_container][Container.inventory.outerlocationtype], 
-                                         Container.inventory.title:                     container_paired_data[_container][Container.inventory.title],
-                                         Container.container_history.move_date:         container_history_paired_data[stripped_container][Container.container_history.move_date],
-                                         Container.container_history.action:            container_history_paired_data[stripped_container][Container.container_history.action],
-                                         Container.container_history.movedBy:           container_history_paired_data[stripped_container][Container.container_history.movedBy],
-                                         Container.container_history.oldContainer:      container_history_paired_data[stripped_container][Container.container_history.oldContainer],
-                                         Container.container_history.newContainer:      container_history_paired_data[stripped_container][Container.container_history.newContainer],
-                                         Container.container_history.requestByClient:   container_history_paired_data[stripped_container][Container.container_history.requestByClient],
-                                         
-                                         Container.container_history.move_date_2:       container_history_paired_data[stripped_container][Container.container_history.move_date_2],
-                                         Container.container_history.action_2:          container_history_paired_data[stripped_container][Container.container_history.action_2],
-                                         Container.container_history.movedBy_2:         container_history_paired_data[stripped_container][Container.container_history.movedBy_2],
-                                         Container.container_history.oldContainer_2:    container_history_paired_data[stripped_container][Container.container_history.oldContainer_2],
-                                         Container.container_history.newContainer_2:    container_history_paired_data[stripped_container][Container.container_history.newContainer_2],
-                                         Container.container_history.requestByClient_2: container_history_paired_data[stripped_container][Container.container_history.requestByClient_2]
-                                         })
+                if '-' in data.values():
+                    container_paired_data[cont].setdefault(Container.inventory.container, '')
+                    container_paired_data[cont].setdefault(Container.inventory.asin, '')
+                    container_paired_data[cont].setdefault(Container.inventory.fnsku, '')
+                    container_paired_data[cont].setdefault(Container.inventory.fcsku, '')
+                    container_paired_data[cont].setdefault(Container.inventory.LPN, '')
+                    container_paired_data[cont].setdefault(Container.inventory.quantity, '')
+                    container_paired_data[cont].setdefault(Container.inventory.consumer, '')
+                    container_paired_data[cont].setdefault(Container.inventory.outerlocation, '')
+                    container_paired_data[cont].setdefault(Container.inventory.outerlocationtype, '')
+                    container_paired_data[cont].setdefault(Container.inventory.title, '')
+                    
+                    container_paired_data[cont][Container.inventory.container] = cont
+                    container_paired_data[cont][Container.inventory.asin] = ''
+                    container_paired_data[cont][Container.inventory.fnsku] = ''
+                    container_paired_data[cont][Container.inventory.fcsku] = ''
+                    container_paired_data[cont][Container.inventory.LPN] = ''
+                    container_paired_data[cont][Container.inventory.quantity] = ''
+                    container_paired_data[cont][Container.inventory.consumer] = ''
+                    container_paired_data[cont][Container.inventory.outerlocation] = ''
+                    container_paired_data[cont][Container.inventory.outerlocationtype] = ''
+                    container_paired_data[cont][Container.inventory.title] = ''
+                    
+                    container_history_paired_data[cont][Container.container_history.move_date] = ''
+                    container_history_paired_data[cont][Container.container_history.action] = ''
+                    container_history_paired_data[cont][Container.container_history.movedBy] = ''
+                    container_history_paired_data[cont][Container.container_history.oldContainer] = ''
+                    container_history_paired_data[cont][Container.container_history.newContainer] = ''
+                    container_history_paired_data[cont][Container.container_history.requestByClient] = ''
+                    
+                    container_history_paired_data[cont][Container.container_history.move_date_2] = ''
+                    container_history_paired_data[cont][Container.container_history.action_2] = ''
+                    container_history_paired_data[cont][Container.container_history.movedBy_2] = ''
+                    container_history_paired_data[cont][Container.container_history.oldContainer_2] = ''
+                    container_history_paired_data[cont][Container.container_history.newContainer_2] = ''
+                    container_history_paired_data[cont][Container.container_history.requestByClient_2] = ''
+
+                    container_details_containers[cont].setdefault(Container.container_details.child1, '')
+                    container_details_containers[cont].setdefault(Container.container_details.child2, '')
+
+                for _container, _ in data.items():
+                    stripped_container = _container.split("[")[0]
+                    writer.writerow({Container.inventory.container:                 _container, 
+                                        Container.inventory.asin:                      container_paired_data[_container][Container.inventory.asin], 
+                                        Container.inventory.fnsku:                     container_paired_data[_container][Container.inventory.fnsku], 
+                                        Container.inventory.fcsku:                     container_paired_data[_container][Container.inventory.fcsku], 
+                                        Container.inventory.LPN:                       container_paired_data[_container][Container.inventory.LPN], 
+                                        Container.inventory.quantity:                  container_paired_data[_container][Container.inventory.quantity], 
+                                        Container.inventory.consumer:                  container_paired_data[_container][Container.inventory.consumer], 
+                                        Container.inventory.outerlocation:             container_paired_data[_container][Container.inventory.outerlocation], 
+                                        Container.inventory.outerlocationtype:         container_paired_data[_container][Container.inventory.outerlocationtype], 
+                                        Container.inventory.title:                     container_paired_data[_container][Container.inventory.title],
+                                        Container.container_history.move_date:         container_history_paired_data[stripped_container][Container.container_history.move_date],
+                                        Container.container_history.action:            container_history_paired_data[stripped_container][Container.container_history.action],
+                                        Container.container_history.movedBy:           container_history_paired_data[stripped_container][Container.container_history.movedBy],
+                                        Container.container_history.oldContainer:      container_history_paired_data[stripped_container][Container.container_history.oldContainer],
+                                        Container.container_history.newContainer:      container_history_paired_data[stripped_container][Container.container_history.newContainer],
+                                        Container.container_history.requestByClient:   container_history_paired_data[stripped_container][Container.container_history.requestByClient],
+                                        
+                                        Container.container_history.move_date_2:       container_history_paired_data[stripped_container][Container.container_history.move_date_2],
+                                        Container.container_history.action_2:          container_history_paired_data[stripped_container][Container.container_history.action_2],
+                                        Container.container_history.movedBy_2:         container_history_paired_data[stripped_container][Container.container_history.movedBy_2],
+                                        Container.container_history.oldContainer_2:    container_history_paired_data[stripped_container][Container.container_history.oldContainer_2],
+                                        Container.container_history.newContainer_2:    container_history_paired_data[stripped_container][Container.container_history.newContainer_2],
+                                        Container.container_history.requestByClient_2: container_history_paired_data[stripped_container][Container.container_history.requestByClient_2],
+
+                                        })
         goto_fcr()
         create_csv(csv_file)
+        container_details(container_details_containers)
         data = consumer()
         cont_hist_data = container_history()
-        if data != "No Inventory":
-            data_pairing(data, hist=False, row = 1)  # Pair non-history data
+        if data != "No Inventory" or len(container_details_containers) > 0:
+            if len(container_details_containers) > 0:
+               data_pairing(container_details_containers, hist=True, row = 3, target=container_details_containers)
+            
+            if data == "No Inventory":
+                data = {container : '-'}
+            data_pairing(data, hist=False, row = 0, target=container_data_dict)  # Pair non-history data
 
             # Pair history data from all three dictionaries
-            data_pairing(cont_hist_data[0], hist=True, row = 1)
-            data_pairing(cont_hist_data[1], hist=True, row = 2)
+            data_pairing(cont_hist_data[0], hist=True, row = 1, target=container_history_paired_data)
+            data_pairing(cont_hist_data[1], hist=True, row = 2, target=container_history_paired_data)
+            data_pairing(container_details_containers, hist=True, row = 3, target=container_history_paired_data)
             # data_pairing(cont_hist_data[2], hist=True)
 
         if not write_to_csv:
@@ -1467,7 +1621,8 @@ class chromeSession():
         else:
             csv_write(container)
 
-    def andons(self, bin_id):
+    def andons(self, bin_id, type):
+        fnsku_qty = None
         def click_assign_andon():
             try:
                 assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
@@ -1535,39 +1690,313 @@ class chromeSession():
             except TimeoutException:
                 print("save element not found")
 
-        URL = "http://fc-andons-na.corp.amazon.com/HDC3?category=Bin+Item+Defects&type=All+types"
+
+        def search_bin(bin):
+            WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
+            keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
+            keyword_search.clear()
+            keyword_search.send_keys(bin)
+        
+        def main():
+            click_assign_andon()
+            click_first_andon()
+            time.sleep(.2)
+            click_view_edit()
+            time.sleep(.8)
+            # ensure_login(userlogin)
+            # time.sleep(.7)
+            click_resolve_box()
+            # time.sleep(.7)
+            click_save()
+
+        def comment_need_asin():
+            def comment(csX: str, comment: str):
+                box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.comment_input)))
+                box.clear()
+                box.send_keys(f"{csX} : {comment}")
+                select_4th_option()
+
+            def select_4th_option():
+                body = self.driver.find_element(By.XPATH, locator.body)
+                for _ in range (2):
+                    body.send_keys(Keys.SHIFT + Keys.TAB)
+
+                dropdown = self.driver.switch_to.active_element
+                dropdown.click()
+                for _ in range(4):
+                    dropdown.send_keys(Keys.DOWN)
+                dropdown.send_keys(Keys.SPACE)
+
+            click_first_andon()
+            time.sleep(2)
+            click_view_edit()
+            time.sleep(.8)
+            comment(csX, "No Inventory History")
+            time.sleep(2)
+            click_save()
+
+
+        def COA_csX_from_comment():
+            table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
+            tableRows = table.find_elements(By.TAG_NAME, 'tr')
+            rowData = tableRows[1].find_elements(By.XPATH, 'td')
+            comment = rowData[10].find_element(By.TAG_NAME, 'span').text
+            match = re.search(r'csX\w+', comment)
+            csX = match.group(0) if match else ""
+            return csX
+
+        def container_loaded(by: By, locator_str: locator):
+            section = None
+            unclickable_section = None
+            while True:
+                try:
+                    tab_switch(self.tab_handles[tab_names.FCR])
+                    section = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((by, locator_str)))
+                except TimeoutException:
+                    unclickable_section = WebDriverWait(self.driver, 5).until_not(EC.element_to_be_clickable((by, locator_str)))
+                    unclickable_section = True
+                    
+                if unclickable_section:
+                    return False
+                else:
+                    class_name = self.driver.execute_script("return arguments[0].className;", section)
+                    if class_name == "loading failure":
+                        self.driver.refresh()
+                    elif class_name == "loading":
+                        continue
+                    elif class_name == "":
+                        children = section.find_elements(By.XPATH, "*")
+                        for child in children:
+                            if child.tag_name == "i":
+                                return False
+                            elif child.tag_name == "a":
+                                return True
+                            else:
+                                return None 
+                    else:
+                        continue
+
+        def COA_subtract_days(date, days_to_subtract: int, date_format="%m/%d/%Y"):
+            original_date = datetime.strptime(date, date_format)
+            new_date = original_date - timedelta(days=days_to_subtract)
+            return new_date.strftime(date_format)
+            
+
+                    
+        def COA_search_past_inv(csX: str) -> Union[bool, str]:
+            FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={csX}"
+
+            if self.driver.current_url != FCR:
+                open_new_tab_and_switch(FCR, tab_names.FCR)
+            if self.driver.current_url != FCR:
+                self.navigate(FCR)
+            inventory_section = container_loaded(By.ID, locator.ID.fcresearch.inventory.table)
+            if not inventory_section:
+                current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
+                updated_start_date = COA_subtract_days(datetime.now().strftime("%m/%d/%Y"), 180)
+                current_start_date.clear()
+                current_start_date.send_keys(updated_start_date)
+                search_btns = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.fcresearch.search_buttons)))
+                search_btns[1].click()
+                table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entries_table)))
+                tds = table.find_elements(By.XPATH, ".//tbody//td")
+                if len(tds) >=2 :
+                    return False
+                elif len(tds) == 1:
+                    if tds[0].text == 'No matching records found':
+                        return "need asin"
+            else:
+                return True
+            
+
+        def open_new_tab_and_switch(url: str, tab_name: str):
+            if tab_name in self.tab_handles:
+                self.driver.switch_to.window(self.tab_handles[tab_name])
+            else:
+                original_window = self.driver.window_handles[0]
+                if self.driver.title == 'FC Problem Solve - Andons':
+                    self.tab_handles[tab_names.ANDONS] = original_window
+
+                self.driver.execute_script(f"window.open(\"{url}\", \"_blank\");")
+                all_handles = self.driver.window_handles
+                new_tab = [handle for handle in all_handles if handle != original_window][-1]
+                self.tab_handles[tab_name] = new_tab
+                self.driver.switch_to.window(self.tab_handles[tab_name])
+
+            return
+        
+        def tab_switch(tab_name, optional_url=''):
+            if tab_name in self.tab_handles.values():
+                self.driver.switch_to.window(tab_name)
+            else:
+                open_new_tab_and_switch(tab_name, optional_url)
+
+           
+
+        def get_FNSKU_Qty() -> tuple:
+            entry_count_info = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entry_info))).text.strip()
+            count = int(re.findall(r'\d+', entry_count_info)[-1]) if re.findall(r'\d+', entry_count_info) else 0
+            if count >= 1:
+                table =  WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entries_table)))
+                rows = table.find_elements(By.TAG_NAME, 'tr')
+                FNSKU = rows[1].find_elements(By.TAG_NAME, 'td')[4].text.strip()
+                qty = rows[1].find_elements(By.TAG_NAME, 'td')[7].text.strip()
+                return (FNSKU, qty)
+
+        def add_inventory():
+            def container():
+                # type container
+                container_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.container)))
+                container_entry.clear()
+                # Enter (continue)
+                while True:
+                    container_entry.send_keys(csX)
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.continue_enter))).click()
+                    alert = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.container_not_found_alert)))
+                    if alert.text == f"Container {csX} not found.":
+                        open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', tab_names.SIDELINE)
+                        sideline_wakeup()
+                        tab_switch(self.tab_handles[tab_names.ADD_ITEM])
+                    else:
+                        break
+            def item():
+                # enter item
+                item_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.item)))
+                item_entry.clear()
+                item_entry.send_keys(fnsku_qty[0])
+                item_entry.send_keys(Keys.ENTER)
+            
+            def qty():
+                update_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.update_qty_btn)))
+                update_qty.click()
+                qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
+                qty_entry.clear()
+                qty_entry.send_keys(fnsku_qty[1])
+                qty_entry.send_keys(Keys.ENTER)
+                # check for confirmation of qty (if shown)
+                try:
+                    label = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "//label[@for='destinationContainerId']")))
+                except TimeoutException:
+                    label = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "//label[@for='itemQuantity']")))
+                if label.text == 'Scan destination container':
+                    pass
+                else:
+                    qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
+                    qty_entry.clear()
+                    qty_entry.send_keys(fnsku_qty[1])
+                    qty_entry.send_keys(Keys.ENTER)
+            
+            def scan_dest_container():
+                dest_container = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.dest_container)))
+                dest_container.clear()
+                dest_container.send_keys(csX)
+                dest_container.send_keys(Keys.ENTER)
+
+            def start_over():
+                start_over_o = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.start_over_btn)))
+                start_over_o.click()
+
+            container()
+            item()
+            qty()
+            scan_dest_container()
+            start_over()
+
+        def move_case_to(container, destination):
+            URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
+            open_new_tab_and_switch(URL, tab_names.MOVE_CONTAINER)
+            return self.move_container(200, container, destination)
+
+        def sideline_wakeup():
+            def get_step():
+                text =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.source_container))).text
+                if text == "":
+                    return 'scan container'
+                elif text == csX:
+                    text = 'item'
+                return text
+            try:
+                tab_switch(self.tab_handles[tab_names.SIDELINE])
+            except KeyError:
+                open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', tab_names.SIDELINE)
+            self.driver.refresh()
+            source_container = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
+            source_container.send_keys(csX)
+            source_container.send_keys(Keys.ENTER)
+            step = get_step()
+            time.sleep(1)
+            # if WebDriverWait(self.driver, 10).until(EC.)
+            try:
+                alert_div = WebDriverWait(self.driver, 2).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.sideline.alert_div)))                    
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.container_overage_btn))).click()
+                time.sleep(2)
+            except TimeoutException:
+                self.driver.refresh()
+
+        URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
             self.navigate(URL)
+
+        
         
         # userlogin = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.userlogin))).text.split(" ")[0]
-        keyword_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.filter_by_keyword)))
-        WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
-        
-        keyword_search.clear()
-        keyword_search.send_keys(bin_id)
-        
+        search_bin(bin_id)
+
         try:
-            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+            count_search = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
         except TimeoutException:
             self.driver.refresh()
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
             count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+            search_bin(bin_id)
         
         if "0" in count_search:
             return None
-        
-        click_assign_andon()
-        click_first_andon()
-        click_view_edit()
-        time.sleep(1)
-        # ensure_login(userlogin)
-        # time.sleep(.7)
-        click_resolve_box()
-        # time.sleep(.7)
-        click_save()
+        # elif "" in count_search:
+        #     return None
 
+        if type == andon_types.unexpectedContainerOverage:
+            # get csX comment from the andon
+            csX = COA_csX_from_comment()
+            
+            # search csX in FC Research
+            inv = COA_search_past_inv(csX)
+            if inv == True:
+                # move_case_to(csX, 'dz-R-ICQA-WIP')
+                tab_switch(self.tab_handles[tab_names.ANDONS])
+                main()
+                return
+            elif inv == 'need asin':
+                tab_switch(self.tab_handles[tab_names.ANDONS])
+                comment_need_asin()
+                return
+            else: pass
 
-    def print_andons(self, bin_id: str, printing_url: str):
+            # search table
+            fnsku_qty = get_FNSKU_Qty()
+
+            while True:
+                sideline_wakeup()
+                moved = move_case_to(csX, 'dz-R-ICQA-WIP')
+                if moved:
+                    break
+                else: continue
+            # Add Item inventory
+            
+            open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
+            
+            add_inventory()
+
+            tab_switch(self.tab_handles[tab_names.ANDONS])
+
+            main()
+            
+            return
+                        
+        else:
+            main()
+
+    def print_andons(self, bin_id: str, printing_url: str, type):
         def printData(barcode, text, badge):
             barcode_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.barcodeEntry)))
             text_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.barcodeGenerator.displayText)))
@@ -1616,12 +2045,12 @@ class chromeSession():
             try:
                 child_containers = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table))).text
                 if child_containers == "No child containers.":
-                    self.andons(bin_id)
+                    self.andons(bin_id, type)
                     return
                 else:
                     child_containers = child_containers.split(' ', 1)[0]
             except TimeoutException:
-                self.andons(bin_id)
+                self.andons(bin_id, type)
             if child_containers:
                 paX = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
                 self.navigate(printing_url)
@@ -1629,3 +2058,23 @@ class chromeSession():
                 time.sleep(1)
                 printData(paX, paX, "1")
                 time.sleep(1.5)
+        
+    def labor_track(self, code: str, badge_id: str):
+        self.navigate(f"https://fcmenu-iad-regionalized.corp.amazon.com/{self.site}/laborTrackingKiosk")
+        
+        def enter_code(calmCode: str):
+            ele_calmCode = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.calmCode)))
+            ele_calmCode.send_keys(calmCode)
+            ele_calmCode.send_keys(Keys.ENTER)
+
+        def enter_badge(badge: str):
+            ele_badge_id = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.badge_id)))
+            ele_badge_id.send_keys(badge)
+            ele_badge_id.send_keys(Keys.ENTER)
+
+        def submit():
+            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.submit))).click()
+
+        enter_code(code)
+        enter_badge(badge_id)
+        submit()

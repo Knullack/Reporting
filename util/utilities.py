@@ -24,8 +24,25 @@ def runtime(function: Callable[..., any], *args, **kwargs) -> Tuple[str, any] | 
     
     return (runtime_print, return_value) if return_value is not None else runtime_print
 
-def dir_exists(DirPath) -> bool:
-    return os.path.exists(DirPath) and os.path.isdir(DirPath)
+class andon_types:
+    all = "All+types&status=Open"
+    binDoesNotExist = "Bin+does+not+Exist&status=Open"
+    brokenSet = "Broken+Set&status=Open"
+    damagedItem = "Damaged+Item&status=Open"
+    noBinDivider = "No+Bin+Divider&status=Open"
+    noScannableBarcode = "No+Scannable+Barcode&status=Open"    
+    noScannableBinLabel = "No+Scannable+Bin+Label&status=Open"
+    multipleScannableBarcodes = 'Multiple+Scannable+Barcodes&status=Open'
+    suspectTheft = "Suspect+Theft&status=Open"
+    unexpectedContainerOverage = "Unexpected+Container+Overage&status=Open"
+    unsafeToCount = "Unsafe+to+Count&status=Open"
+
+class tab_names:
+    ANDONS = "Andons"
+    FCR = 'FC Research'
+    ADD_ITEM = 'Add Items'
+    MOVE_CONTAINER = 'Move Container'
+    SIDELINE = 'Sideline'
 
 class chromeFinder:
     __storage_file__ = 'local_storage.ini'
@@ -154,6 +171,10 @@ class Container:
         newContainer_3 = "New Container 3"
         requestByClient_3 = "Request by Client 3"
 
+    class container_details:
+        child1 = "child1"
+        child2 = "child2"
+
 class locator:
     body = '/html/body'
     nav = '/html/body/nav'
@@ -166,6 +187,8 @@ class locator:
             confirmed = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span'
             confirmation_div_overlay = '/html/body/div[4]/div/div/div'
             main_panel = '/html/body/div[1]/div/div/div[2]/div/div[1]'
+            container_overage_btn = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div[1]/div/div/div/div/div[3]/button'
+            select_overage_banner = '/html/body/div[1]/div/div/div[2]/div/div[1]/div/div[2]/div/div[1]/div/div/div/div/div[2]/div/div/span/span[3]'
         class counts:
             time_span = '/html/body/div[2]/nav/div[2]/ul[2]/li[3]/a'
             iframe = '/html/body/div/iframe'
@@ -218,18 +241,27 @@ class locator:
             outbound = '/html/body/div[3]/div/div[2]/ul[1]/li[2]/a'
             picking = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
             move_container_145 = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            move_container_146 = '/html/body/div[3]/div/div[2]/ul[1]/li[3]/a'
             problem_solve = '/html/body/div[3]/div/div[2]/ul[2]/li[5]/a'
             sideline_app = '/html/body/div[3]/div/div[2]/ul[1]/li[1]/a'
-            unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[3]/a'
+            unbindHierarchy = '/html/body/div[3]/div/div[2]/ul[2]/li[4]/a'
+
+            class labor_tracking:
+                submit = "/html/body/div[3]/div/div[2]/form/input[4]"
+                calmCode = "/html/body/div[3]/div/div[3]/form/input[2]"
+                badge_id = "/html/body/div[3]/div/div[2]/form/input[3]"
+
             class unbind:
                 input = '/html/body/div[2]/div/input'
                 continue_btn = '/html/body/div[1]/div[4]/div[2]/div[4]/span'
                 success_banner = '/html/body/div[1]/div[3]/div/div[2]/span[1]'
                 error_banner = '/html/body/div[1]/div[5]/div[2]/div[2]'
+                double_check_banner = '/html/body/div[1]/div[4]/div[2]/div[2]'
             class move_container:
                 individually_workflow = '/html/body/div/div/div/ul/li[2]'
                 input = '/html/body/div/div[7]/div/input'
                 error_msg = '/html/body/div/div[4]/div[2]/div[1]'
+                
             class peculiar_inventory:
                 table_body = '/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody'
 
@@ -240,7 +272,8 @@ class locator:
                 asin = '/html/body/div[2]/div/div[1]/div/div[6]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[2]/a'
                 child_containers_table = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table"
                 child_containers_table_first_row = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[1]"
-
+                inventory_section = '/html/body/div[2]/div/div[3]/div/div[2]/div/ul/li[6]'
+                inventory_history_not_found_text = '/html/body/div[2]/div/div[1]/div/div[7]/div/div[2]/div/div[2]/div[1]/div[2]/table/tbody/tr[1]/td'
                 class container_history:
                     last_move_login = "/html/body/div[2]/div/div[1]/div/div[8]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr[1]/td[3]"
             class pickUI:
@@ -274,8 +307,14 @@ class locator:
                     scan_vehicle_id_span = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div[1]/div/div[1]/div/span'
                     input = ''
                     next_bin = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div[2]/div/div/div/div/span/span[2]'
-                    
-
+            
+            class add_items:
+                continue_enter = '/html/body/div[1]/div[3]/form/span/span/input'
+                container_not_found_alert = '/html/body/div[1]/div[3]/form/div[2]/div/div'
+                update_qty_btn = '/html/body/div[1]/div[3]/form[2]/span/span/input'
+                confirm_qty_label = '/html/body/div[1]/div[3]/form/label'
+                start_over_btn = '/html/body/div[1]/div[3]/form[2]/span/span/input'
+                
         class picking_console:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span'
             table = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div[2]/span/div/div[3]/div/div/awsui-table/div/div[3]'
@@ -293,9 +332,21 @@ class locator:
             count_search_result = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/span"
             login_input = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[2]/div/div/div/div/span/awsui-input/div/input"
             userlogin = "/html/body/div/div/div/header/ul/li[3]"
+            table = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table'
+            comment_input = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[3]/div/div/div/div/span/awsui-textarea/textarea'
+            root_cause_dropdown = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[1]/div/div/div/div/span/awsui-select/div/div/awsui-select-dropdown/div'
 
     class class_name:
 
+        class add_items:
+            continue_enter = 'a-button-input aft-scan-submit'
+
+        class fcmenu:
+            class fcresearch:
+                search_buttons = 'a-button-text'
+            
+            class sideline:
+                alert_div = 'alert--error'
         class itemApps:
             processing_visible = 'a-section aft-tool-processing aft-tool-status'
             processing_hidden = 'a-section aft-tool-hide aft-tool-processing aft-tool-status'
@@ -326,6 +377,14 @@ class locator:
 
     class ID:
         
+        class fcmenu:
+            class move_container:
+                exception_body = 'exception-body'
+        class add_items:
+            container = 'containerScannableId'
+            item = 'itemScannableId'
+            itemQTY = 'itemQuantity'
+            dest_container = 'destinationContainerId'
         class delete:
             user_menu = 'a-page'
             user_menu_overlay = 'a-popover-1'
@@ -333,11 +392,20 @@ class locator:
             spinner = 'spinner'
 
         class fcresearch:
+            class inventory:
+                table = 'inventory-status'
             class container_history:
                 table = 'table-container-history'
+            class inventory_history:
+                start_date = 'searchStart'
+                entry_info = 'table-inventory-history_info'
+                entries_table = 'table-inventory-history'
             
             class container_details:
                 table = "container-hierarchy-status"
+
+            class details:
+                table = "table-container-hierarchy"
 
         class barcodeGenerator:
             barcodeEntry = "barcodedata"
