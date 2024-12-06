@@ -1629,6 +1629,7 @@ class chromeSession():
         fnsku_qty = None
         def click_assign_andon():
             try:
+                # path = f"/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[{row_num+1}]/td[12]/span/awsui-button/button"
                 assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
                 if assign_andon.text == "Assign":
                     assign_andon.click()
@@ -1656,6 +1657,8 @@ class chromeSession():
                         dropdown.send_keys(Keys.DOWN)
                     dropdown.send_keys(Keys.SPACE)
                     click_save()
+                    self.driver.refresh()
+                    search_bin(bin_id)
                     continue
 
 
@@ -1773,8 +1776,10 @@ class chromeSession():
 
 
         def COA_csX_from_comment():
+            # ROW PARAMETER TAKEN OUT
             table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
             tableRows = table.find_elements(By.TAG_NAME, 'tr')
+            # SET TABLEROWS[1].findelements
             rowData = tableRows[1].find_elements(By.XPATH, 'td')
             comment = rowData[10].find_element(By.TAG_NAME, 'span').text
             match = re.search(r'csX\w+', comment)
@@ -2041,7 +2046,7 @@ class chromeSession():
                 search_bin(bin_id)
             else: None
             if type == andon_types.unexpectedContainerOverage:
-                # get csX comment from the andon
+                # get csX comment from the andon \ SET n PARAMETER ENTERD IN
                 csX = COA_csX_from_comment()
                 
                 # search csX in FC Research
