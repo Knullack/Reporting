@@ -388,6 +388,7 @@ class locator:
             item = 'itemScannableId'
             itemQTY = 'itemQuantity'
             dest_container = 'destinationContainerId'
+            itemQuantityElement = 'itemQuantityText'
         class delete:
             user_menu = 'a-page'
             user_menu_overlay = 'a-popover-1'
