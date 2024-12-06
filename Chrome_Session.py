@@ -1636,19 +1636,21 @@ class chromeSession():
 
     def andons(self, bin_id, type):
         fnsku_qty = None
-        def click_assign_andon():
+        def andon_nx_path(n):
+            return f"/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[{n+1}]/td[12]/span/awsui-button/button"
+        
+        def click_assign_andon(row_num):
             try:
-                # path = f"/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[{row_num+1}]/td[12]/span/awsui-button/button"
-                assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
+                assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, andon_nx_path(row_num))))
                 if assign_andon.text == "Assign":
                     assign_andon.click()
             except TimeoutException:
                 print("assign_andon element not found")
 
-        def click_first_andon():
+        def click_andon(row_num):
             while True:
                 try:
-                    WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.select_first_andon))).click()
+                    WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, andon_nx_path(row_num)))).click()
                     break
                 except TimeoutException:
                     print("first_andon element not found")
@@ -1671,15 +1673,15 @@ class chromeSession():
                     continue
 
 
-        def click_view_edit():
+        def click_view_edit(row_num):
             try:
                 view_edit = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.view_edit)))
                 view_edit.click()
             except TimeoutException:
                 print("view_edit element not found")
             except ElementClickInterceptedException:
-                click_first_andon()
-                click_view_edit()
+                click_andon(row_num)
+                click_view_edit(row_num)
 
         def ensure_login(userlogin):
             pass
@@ -1688,7 +1690,7 @@ class chromeSession():
             #     login.clear()
             #     login.send_keys(userlogin)
 
-        def click_resolve_box():
+        def click_resolve_box(row_num):
             try:
                 resolve_box = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.resolve_box)))
                 outer_div = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.label_resolveBox)))
@@ -1705,13 +1707,13 @@ class chromeSession():
                     keyword_search.clear()
                     keyword_search.send_keys(bin_id)
 
-                    click_assign_andon()
+                    click_assign_andon(row_num)
                     time.sleep(.7)
-                    click_first_andon()
+                    click_andon(row_num)
                     time.sleep(.7)
                     click_view_edit()
                     time.sleep(.7)
-                    click_resolve_box()
+                    click_resolve_box(row_num)
                 except TimeoutException:
                     print("resolve_box element not found")
 
@@ -1745,19 +1747,19 @@ class chromeSession():
             keyword_search.clear()
             keyword_search.send_keys(bin)
         
-        def main():
-            click_assign_andon()
-            click_first_andon()
+        def main(row_num):
+            click_assign_andon(row_num)
+            click_andon(row_num)
             time.sleep(.2)
-            click_view_edit()
+            click_view_edit(row_num)
             time.sleep(.8)
             # ensure_login(userlogin)
             # time.sleep(.7)
-            click_resolve_box()
+            click_resolve_box(row_num)
             # time.sleep(.7)
             click_save()
 
-        def comment_need_asin():
+        def comment_need_asin(row_num):
             def comment(csX: str, comment: str):
                 box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.comment_input)))
                 box.clear()
@@ -1775,21 +1777,24 @@ class chromeSession():
                     dropdown.send_keys(Keys.DOWN)
                 dropdown.send_keys(Keys.SPACE)
 
-            click_first_andon()
+            click_andon(row_num)
             time.sleep(2)
-            click_view_edit()
+            click_view_edit(row_num)
             time.sleep(.8)
             comment(csX, "No Inventory History")
             time.sleep(2)
             click_save()
 
 
-        def COA_csX_from_comment():
-            # ROW PARAMETER TAKEN OUT
+        def COA_csX_from_comment(row_num):
             table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
             tableRows = table.find_elements(By.TAG_NAME, 'tr')
-            # SET TABLEROWS[1].findelements
-            rowData = tableRows[1].find_elements(By.XPATH, 'td')
+            while True:
+                try:
+                    rowData = tableRows[row_num+1].find_elements(By.XPATH, 'td')
+                    break
+                except IndexError:
+                    row_num -= 1
             comment = rowData[10].find_element(By.TAG_NAME, 'span').text
             match = re.search(r'csX\w+', comment)
             csX = match.group(0) if match else ""
@@ -1921,13 +1926,18 @@ class chromeSession():
                 item_entry.send_keys(fnsku_qty[0])
                 item_entry.send_keys(Keys.ENTER)
             
-            def qty():
-                update_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.update_qty_btn)))
-                update_qty.click()
-                qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
-                qty_entry.clear()
-                qty_entry.send_keys(fnsku_qty[1])
-                qty_entry.send_keys(Keys.ENTER)
+            def qty(qty):
+                def verify_qty(qty):
+                    current_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQuantityElement))).text
+                    if current_qty != qty:
+                        update_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.update_qty_btn)))
+                        update_qty.click()
+                        qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
+                        qty_entry.clear()
+                        qty_entry.send_keys(qty)
+                        qty_entry.send_keys(Keys.ENTER)
+
+                verify_qty(qty)
                 # check for confirmation of qty (if shown)
                 try:
                     label = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, "//label[@for='destinationContainerId']")))
@@ -1938,7 +1948,7 @@ class chromeSession():
                 else:
                     qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.add_items.itemQTY)))
                     qty_entry.clear()
-                    qty_entry.send_keys(fnsku_qty[1])
+                    qty_entry.send_keys(qty)
                     qty_entry.send_keys(Keys.ENTER)
             
             def scan_dest_container():
@@ -1962,8 +1972,9 @@ class chromeSession():
                 elif step == 'Scan item':
                     item()
                 elif step == 'Enter quantity':
-                    qty()
+                    qty(fnsku_qty[1])
                 elif step == 'Scan destination container':
+                    qty(fnsku_qty[1])
                     scan_dest_container()
                     start_over()
                     break
@@ -2051,23 +2062,24 @@ class chromeSession():
             return None
         for n in range(count_search):
             if n == 1:
-                self.driver.refresh()
-                search_bin(bin_id)
+                pass
+                # self.driver.refresh()
+                # search_bin(bin_id)
             else: None
             if type == andon_types.unexpectedContainerOverage:
                 # get csX comment from the andon \ SET n PARAMETER ENTERD IN
-                csX = COA_csX_from_comment()
+                csX = COA_csX_from_comment(n)
                 
                 # search csX in FC Research
                 inv = COA_search_past_inv(csX)
                 if inv == True:
                     # move_case_to(csX, 'dz-R-ICQA-WIP')
                     tab_switch(self.tab_handles[tab_names.ANDONS])
-                    main()
+                    main(n)
                     return
                 elif inv == 'need asin':
                     tab_switch(self.tab_handles[tab_names.ANDONS])
-                    comment_need_asin()
+                    comment_need_asin(n)
                     return
                 else: pass
 
@@ -2096,7 +2108,7 @@ class chromeSession():
 
                 tab_switch(self.tab_handles[tab_names.ANDONS])
 
-                main()      
+                main(n)      
             else:
                 main()
         return
