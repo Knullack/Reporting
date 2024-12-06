@@ -1,37 +1,46 @@
-try:
-    import re
-    import pyautogui as pyg
-    import keyboard
-    import importlib
-    import logging
-    import subprocess
-    import sys
-    import os
-    import csv
-    import io
-    from PIL import Image
-    import time
-    import glob
-    import time
-    import pandas as pd
-    from datetime import datetime, timedelta
-    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException, NoSuchWindowException, ElementNotInteractableException, MoveTargetOutOfBoundsException
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.chrome.options import Options as ChromeOptions
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.common.keys import Keys
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver import Chrome
-    from selenium.webdriver.remote.webelement import WebElement
-    from typing import Literal, Union
-    from util.utilities import locator, header, constants, Container, andon_types, tab_names
-except ImportError as e:
-    missing_module = str(e).split("'")[1]
-    print(f"Module '{missing_module}' is not installed. Installing...")
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', missing_module])
-    print(f"Module '{missing_module}' has been installed. Please restart the script.")
-    sys.exit(1)
+import subprocess
+import sys
+
+while True:
+    try:
+        import re
+        import pyautogui as pyg
+        import keyboard
+        import importlib
+        import logging
+        import subprocess
+        import sys
+        import os
+        import csv
+        import io
+        from PIL import Image
+        import time
+        import glob
+        import pandas as pd
+        from datetime import datetime, timedelta
+        from selenium.common.exceptions import (
+            WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,
+            ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException,
+            NoSuchWindowException, ElementNotInteractableException, MoveTargetOutOfBoundsException
+        )
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from selenium.webdriver.common.action_chains import ActionChains
+        from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver import Chrome
+        from selenium.webdriver.remote.webelement import WebElement
+        from typing import Literal, Union
+        from util.utilities import locator, header, constants, Container, andon_types, tab_names
+        break
+
+    except ImportError as e:
+        missing_module = str(e).split("'")[1]
+        print(f"Module '{missing_module}' is not installed. Installing...")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', missing_module])
+        print(f"Module '{missing_module}' has been installed. Retrying imports...")
+
 logging.basicConfig(level=logging.ERROR)
 
 LOGIN_URL = constants.LOGIN_URL
@@ -1145,12 +1154,16 @@ class chromeSession():
                 input.clear()
             except ElementNotInteractableException:
                 body.send_keys('t')
-            try:
-                WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
-            except TimeoutException:
-                self.driver.refresh()
-                WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
-
+            while True:
+                try:
+                    body = self.driver.find_element(By.XPATH, locator.body)
+                    body.send_keys('t')
+                    input = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.move_container.input)))
+                    break
+                except TimeoutException:
+                    self.driver.refresh()
+                    continue
+                
             if input.is_displayed():
                 input.send_keys(container_)
                 time.sleep(.4)
@@ -1205,7 +1218,7 @@ class chromeSession():
                         print(f'{container} moved\n')
                         time.sleep(.5)
                 else:
-                    print(f'{container} -> Failed Move // No Inventory')
+                    print(f'{container} -> Failed Move // Failed to Wakeup... retrying')
                     return False
             elif workflow == 300:
                 enter_container(container)
@@ -1625,6 +1638,7 @@ class chromeSession():
         fnsku_qty = None
         def click_assign_andon():
             try:
+                # path = f"/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[{row_num+1}]/td[12]/span/awsui-button/button"
                 assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.assign_andon)))
                 if assign_andon.text == "Assign":
                     assign_andon.click()
@@ -1632,11 +1646,30 @@ class chromeSession():
                 print("assign_andon element not found")
 
         def click_first_andon():
-            try:
-                first_andon = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.select_first_andon)))
-                first_andon.click()
-            except TimeoutException:
-                print("first_andon element not found")
+            while True:
+                try:
+                    WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.select_first_andon))).click()
+                    break
+                except TimeoutException:
+                    print("first_andon element not found")
+                    continue
+                except ElementClickInterceptedException:
+                    box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.comment_input)))
+                    box.click()
+                    body = self.driver.find_element(By.XPATH, locator.body)
+                    for _ in range (2):
+                        body.send_keys(Keys.SHIFT + Keys.TAB)
+
+                    dropdown = self.driver.switch_to.active_element
+                    dropdown.click()
+                    for _ in range(3):
+                        dropdown.send_keys(Keys.DOWN)
+                    dropdown.send_keys(Keys.SPACE)
+                    click_save()
+                    self.driver.refresh()
+                    search_bin(bin_id)
+                    continue
+
 
         def click_view_edit():
             try:
@@ -1683,12 +1716,27 @@ class chromeSession():
                     print("resolve_box element not found")
 
         def click_save():
-            try:
-                save = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.save_changes)))
-                save.click()
-                time.sleep(1.2)
-            except TimeoutException:
-                print("save element not found")
+            while True:
+                try:
+                    save = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.save_changes)))
+                    save.click()
+                    time.sleep(1.2)
+                    break
+                except TimeoutException:
+                    box = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.comment_input)))
+                    box.click()
+                    body = self.driver.find_element(By.XPATH, locator.body)
+                    for _ in range (2):
+                        body.send_keys(Keys.SHIFT + Keys.TAB)
+
+                    dropdown = self.driver.switch_to.active_element
+                    dropdown.click()
+                    for _ in range(3):
+                        dropdown.send_keys(Keys.DOWN)
+                    dropdown.send_keys(Keys.SPACE)
+                    click_save()
+                    continue
+
 
 
         def search_bin(bin):
@@ -1737,8 +1785,10 @@ class chromeSession():
 
 
         def COA_csX_from_comment():
+            # ROW PARAMETER TAKEN OUT
             table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.table)))
             tableRows = table.find_elements(By.TAG_NAME, 'tr')
+            # SET TABLEROWS[1].findelements
             rowData = tableRows[1].find_elements(By.XPATH, 'td')
             comment = rowData[10].find_element(By.TAG_NAME, 'span').text
             match = re.search(r'csX\w+', comment)
@@ -1792,19 +1842,24 @@ class chromeSession():
                 self.navigate(FCR)
             inventory_section = container_loaded(By.ID, locator.ID.fcresearch.inventory.table)
             if not inventory_section:
-                current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
-                updated_start_date = COA_subtract_days(datetime.now().strftime("%m/%d/%Y"), 180)
-                current_start_date.clear()
-                current_start_date.send_keys(updated_start_date)
-                search_btns = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.fcresearch.search_buttons)))
-                search_btns[1].click()
-                table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entries_table)))
-                tds = table.find_elements(By.XPATH, ".//tbody//td")
-                if len(tds) >=2 :
-                    return False
-                elif len(tds) == 1:
-                    if tds[0].text == 'No matching records found':
-                        return "need asin"
+                while True:
+                    try:
+                        current_start_date = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.start_date)))
+                        updated_start_date = COA_subtract_days(datetime.now().strftime("%m/%d/%Y"), 180)
+                        current_start_date.clear()
+                        current_start_date.send_keys(updated_start_date)
+                        search_btns = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.fcresearch.search_buttons)))
+                        search_btns[1].click()
+                        table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcresearch.inventory_history.entries_table)))
+                        tds = table.find_elements(By.XPATH, ".//tbody//td")
+                        if len(tds) >=2 :
+                            return False
+                        elif len(tds) == 1:
+                            if tds[0].text == 'No matching records found':
+                                return "need asin"
+                    except TimeoutException:
+                        self.driver.refresh()
+                        continue
             else:
                 return True
             
@@ -1895,12 +1950,24 @@ class chromeSession():
             def start_over():
                 start_over_o = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.start_over_btn)))
                 start_over_o.click()
-
-            container()
-            item()
-            qty()
-            scan_dest_container()
-            start_over()
+            
+            def get_step() -> str:
+                return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.add_items.step_label))).text
+            
+            
+            while True:
+                step = get_step()
+                if step == 'Scan a container to begin':
+                    container()
+                elif step == 'Scan item':
+                    item()
+                elif step == 'Enter quantity':
+                    qty()
+                elif step == 'Scan destination container':
+                    scan_dest_container()
+                    start_over()
+                    break
+                else: continue
 
         def move_case_to(container, destination):
             URL = 'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId=200'
@@ -1920,18 +1987,47 @@ class chromeSession():
             except KeyError:
                 open_new_tab_and_switch('https://aft-poirot-website-iad.iad.proxy.amazon.com/', tab_names.SIDELINE)
             self.driver.refresh()
-            source_container = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
+            source_container = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.input)))
             source_container.send_keys(csX)
             source_container.send_keys(Keys.ENTER)
-            step = get_step()
             time.sleep(1)
-            # if WebDriverWait(self.driver, 10).until(EC.)
             try:
-                alert_div = WebDriverWait(self.driver, 2).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.sideline.alert_div)))                    
+                # alert_div = WebDriverWait(self.driver, 2).until(EC.presence_of_all_elements_located((By.CLASS_NAME, locator.class_name.fcmenu.sideline.alert_div)))                    
                 WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.sideline_app.container_overage_btn))).click()
                 time.sleep(2)
             except TimeoutException:
                 self.driver.refresh()
+
+        def check_for_LA(sku: str, qty: int) -> bool:
+            FCR = f"https://fcresearch-na.aka.amazon.com/{self.site}/results?s={sku}"
+            open_new_tab_and_switch(FCR, tab_names.FCR_ITEM_PRICE)
+            self.navigate(FCR) if self.driver.current_url != FCR else None
+            while True:
+                try:
+                    table = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.asin_info_table)))
+                    break
+                except TimeoutException:
+                    self.navigate(FCR)
+                    continue
+                except TypeError:
+                    self.navigate(FCR)
+                    continue
+
+            tr_s = table.find_elements(By.TAG_NAME, "tr")
+            for tr in tr_s:
+                th = tr.find_element(By.TAG_NAME, 'th').text
+                if th == "List Price":
+                    price = float(tr.find_element(By.TAG_NAME, 'td').text.split(" ")[1])
+                    break
+
+            adjustment_price = price * qty
+            if (qty >= 1000) or (adjustment_price >= 10000):
+                print(f"Adjusment: ${adjustment_price}")
+                return True
+            else:
+                print(f"Adjusment: ${adjustment_price}")
+                return False
+
 
         URL = f"http://fc-andons-na.corp.amazon.com/{self.site}?category=Bin+Item+Defects&type={type}"
         if self.driver.current_url != URL:
@@ -1947,54 +2043,63 @@ class chromeSession():
         except TimeoutException:
             self.driver.refresh()
             WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fc_andons.search_submit)))
-            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
             search_bin(bin_id)
-        
-        if "0" in count_search:
+            count_search = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fc_andons.count_search_result))).text
+            
+        count_search = int(count_search.split(" ")[0])
+        if count_search == 0:
             return None
-        # elif "" in count_search:
-        #     return None
+        for n in range(count_search):
+            if n == 1:
+                self.driver.refresh()
+                search_bin(bin_id)
+            else: None
+            if type == andon_types.unexpectedContainerOverage:
+                # get csX comment from the andon \ SET n PARAMETER ENTERD IN
+                csX = COA_csX_from_comment()
+                
+                # search csX in FC Research
+                inv = COA_search_past_inv(csX)
+                if inv == True:
+                    # move_case_to(csX, 'dz-R-ICQA-WIP')
+                    tab_switch(self.tab_handles[tab_names.ANDONS])
+                    main()
+                    return
+                elif inv == 'need asin':
+                    tab_switch(self.tab_handles[tab_names.ANDONS])
+                    comment_need_asin()
+                    return
+                else: pass
 
-        if type == andon_types.unexpectedContainerOverage:
-            # get csX comment from the andon
-            csX = COA_csX_from_comment()
-            
-            # search csX in FC Research
-            inv = COA_search_past_inv(csX)
-            if inv == True:
-                # move_case_to(csX, 'dz-R-ICQA-WIP')
+                # search table
+                fnsku_qty = get_FNSKU_Qty()
+                if check_for_LA(fnsku_qty[0], int(fnsku_qty[1])):
+                    print(f"Bin: {bin_id}\nContainer: {csX}\nFnSKU: {fnsku_qty[0]}\nQuantity: {fnsku_qty[1]}:\nLARGE ADJUSMENT")
+                    return
+                
+                c = 0
+                while c <= 8:
+                    sideline_wakeup()
+                    moved = move_case_to(csX, 'dz-R-ICQA-WIP')
+                    if moved:
+                        break
+                    else:
+                        c += 1
+                        if c > 8:
+                            print(f'Failed to wake up {csX} {c} times. Skipping...')
+                            return
+                # Add Item inventory
+                
+                open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
+                
+                add_inventory()
+
                 tab_switch(self.tab_handles[tab_names.ANDONS])
+
+                main()      
+            else:
                 main()
-                return
-            elif inv == 'need asin':
-                tab_switch(self.tab_handles[tab_names.ANDONS])
-                comment_need_asin()
-                return
-            else: pass
-
-            # search table
-            fnsku_qty = get_FNSKU_Qty()
-
-            while True:
-                sideline_wakeup()
-                moved = move_case_to(csX, 'dz-R-ICQA-WIP')
-                if moved:
-                    break
-                else: continue
-            # Add Item inventory
-            
-            open_new_tab_and_switch('http://aft-problem-solve-website-iad.iad.proxy.amazon.com/found_item', tab_names.ADD_ITEM)
-            
-            add_inventory()
-
-            tab_switch(self.tab_handles[tab_names.ANDONS])
-
-            main()
-            
-            return
-                        
-        else:
-            main()
+        return
 
     def print_andons(self, bin_id: str, printing_url: str, type):
         def printData(barcode, text, badge):

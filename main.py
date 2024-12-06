@@ -78,6 +78,6 @@ if __name__ == "__main__":
     # instance.moveContainer(list_containers, destination='TRASH', dict=False)
     # instance.containerData(list_containers, '')
     # instance.unbind(list_containers)
-    instance.resolve_andon(list_bins, andon_types.unexpectedContainerOverage)
     # instance.print_andons(list_bins, andon_types.noScannableBarcode)
+    instance.resolve_andon(list_bins, andon_types.unexpectedContainerOverage)
     instance.close()

@@ -43,6 +43,7 @@ class tab_names:
     ADD_ITEM = 'Add Items'
     MOVE_CONTAINER = 'Move Container'
     SIDELINE = 'Sideline'
+    FCR_ITEM_PRICE = 'FCR_ITEM'
 
 class chromeFinder:
     __storage_file__ = 'local_storage.ini'
@@ -274,6 +275,7 @@ class locator:
                 child_containers_table_first_row = "/html/body/div[2]/div/div[1]/div/div[9]/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr/td[1]"
                 inventory_section = '/html/body/div[2]/div/div[3]/div/div[2]/div/ul/li[6]'
                 inventory_history_not_found_text = '/html/body/div[2]/div/div[1]/div/div[7]/div/div[2]/div/div[2]/div[1]/div[2]/table/tbody/tr[1]/td'
+                asin_info_table = '/html/body/div[2]/div/div[1]/div/div[1]/div/div[2]/div/div/div[2]/table'
                 class container_history:
                     last_move_login = "/html/body/div[2]/div/div[1]/div/div[8]/div/div[2]/div/div/div[1]/div[2]/table/tbody/tr[1]/td[3]"
             class pickUI:
@@ -312,8 +314,8 @@ class locator:
                 continue_enter = '/html/body/div[1]/div[3]/form/span/span/input'
                 container_not_found_alert = '/html/body/div[1]/div[3]/form/div[2]/div/div'
                 update_qty_btn = '/html/body/div[1]/div[3]/form[2]/span/span/input'
-                confirm_qty_label = '/html/body/div[1]/div[3]/form/label'
                 start_over_btn = '/html/body/div[1]/div[3]/form[2]/span/span/input'
+                step_label = '/html/body/div[1]/div[3]/form/label'
                 
         class picking_console:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[1]/div/span/awsui-flashbar/div/awsui-flash/div/div[2]/div/div/span/span/span'
@@ -323,6 +325,7 @@ class locator:
             error_msg = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-flash/div/div[2]/div/div'
             filter_by_keyword = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[2]/span/span/awsui-table-filtering/span/awsui-input/div/input'
             select_first_andon = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr/td[1]/awsui-radio-button/div/label/input"
+            select_second_andon = '/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[2]/td[1]/awsui-radio-button/div/label/input'
             assign_andon = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr/td[12]/span/awsui-button/button"
             view_edit = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[2]/div[1]/div[1]/span/div/div[2]/awsui-button[2]/button"
             label_resolveBox = "/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-modal/div[2]/div/div/div[2]/div/span/span/awsui-form/div/div[2]/span/span/awsui-form-section/div/div[2]/span/awsui-column-layout/div/span/div/awsui-form-field[4]/div/div/div/div/span/awsui-checkbox/label"

@@ -4,4 +4,3 @@ __pycache__/
 util/__pycache__/
 /.vs
 /testing/__init__.py
-/ReportingVenv
