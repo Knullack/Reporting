@@ -1640,12 +1640,18 @@ class chromeSession():
             return f"/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[{n+1}]/td[12]/span/awsui-button/button"
         
         def click_assign_andon(row_num):
-            try:
-                assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, andon_nx_path(row_num))))
-                if assign_andon.text == "Assign":
-                    assign_andon.click()
-            except TimeoutException:
-                print("assign_andon element not found")
+            while True:
+                try:
+                    assign_andon = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, andon_nx_path(row_num))))
+                    if assign_andon.text == "Assign":
+                        assign_andon.click()
+                        break
+                except TimeoutException:
+                    self.driver.refresh()
+                    continue
+                except ElementClickInterceptedException:
+                    self.driver.refresh()
+                    continue
 
         def click_andon(row_num):
             while True:
@@ -2110,7 +2116,7 @@ class chromeSession():
 
                 main(n)      
             else:
-                main()
+                main(n)
         return
 
     def print_andons(self, bin_id: str, printing_url: str, type):
