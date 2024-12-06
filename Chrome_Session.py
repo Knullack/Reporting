@@ -1,37 +1,46 @@
-try:
-    import re
-    import pyautogui as pyg
-    import keyboard
-    import importlib
-    import logging
-    import subprocess
-    import sys
-    import os
-    import csv
-    import io
-    from PIL import Image
-    import time
-    import glob
-    import time
-    import pandas as pd
-    from datetime import datetime, timedelta
-    from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,  ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException, NoSuchWindowException, ElementNotInteractableException, MoveTargetOutOfBoundsException
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.chrome.options import Options as ChromeOptions
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.common.keys import Keys
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver import Chrome
-    from selenium.webdriver.remote.webelement import WebElement
-    from typing import Literal, Union
-    from util.utilities import locator, header, constants, Container, andon_types, tab_names
-except ImportError as e:
-    missing_module = str(e).split("'")[1]
-    print(f"Module '{missing_module}' is not installed. Installing...")
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', missing_module])
-    print(f"Module '{missing_module}' has been installed. Please restart the script.")
-    sys.exit(1)
+import subprocess
+import sys
+
+while True:
+    try:
+        import re
+        import pyautogui as pyg
+        import keyboard
+        import importlib
+        import logging
+        import subprocess
+        import sys
+        import os
+        import csv
+        import io
+        from PIL import Image
+        import time
+        import glob
+        import pandas as pd
+        from datetime import datetime, timedelta
+        from selenium.common.exceptions import (
+            WebDriverException, TimeoutException, NoSuchElementException, StaleElementReferenceException,
+            ElementClickInterceptedException, UnexpectedAlertPresentException, NoAlertPresentException,
+            NoSuchWindowException, ElementNotInteractableException, MoveTargetOutOfBoundsException
+        )
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from selenium.webdriver.common.action_chains import ActionChains
+        from selenium.webdriver.common.keys import Keys
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver import Chrome
+        from selenium.webdriver.remote.webelement import WebElement
+        from typing import Literal, Union
+        from util.utilities import locator, header, constants, Container, andon_types, tab_names
+        break
+
+    except ImportError as e:
+        missing_module = str(e).split("'")[1]
+        print(f"Module '{missing_module}' is not installed. Installing...")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', missing_module])
+        print(f"Module '{missing_module}' has been installed. Retrying imports...")
+
 logging.basicConfig(level=logging.ERROR)
 
 LOGIN_URL = constants.LOGIN_URL
