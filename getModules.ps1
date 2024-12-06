@@ -1,5 +1,5 @@
 # Directly specify the root directory to search for Python installations
-$searchDirectory = "C:\Users\User\AppData\Local\Programs\Python"
+$searchDirectory = "C:\Users\nuneadon\AppData\Local\Programs\Python"
 
 # Search for Python installations within this directory
 $pythonPath = Get-ChildItem -Path $searchDirectory -Recurse -Filter python.exe -ErrorAction SilentlyContinue | Select-Object -First 1
