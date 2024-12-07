@@ -1646,6 +1646,8 @@ class chromeSession():
                     if assign_andon.text == "Assign":
                         assign_andon.click()
                         break
+                    elif assign_andon.text == "Unassign":
+                        return 'all_resolved'
                 except TimeoutException:
                     self.driver.refresh()
                     continue
@@ -1754,7 +1756,9 @@ class chromeSession():
             keyword_search.send_keys(bin)
         
         def main(row_num):
-            click_assign_andon(row_num)
+            a = click_assign_andon(row_num)
+            if a == 'all_resolved':
+                return
             click_andon(row_num)
             time.sleep(.2)
             click_view_edit(row_num)
@@ -2033,15 +2037,17 @@ class chromeSession():
             for tr in tr_s:
                 th = tr.find_element(By.TAG_NAME, 'th').text
                 if th == "List Price":
-                    price = float(tr.find_element(By.TAG_NAME, 'td').text.split(" ")[1])
+                    try:
+                        price = float(tr.find_element(By.TAG_NAME, 'td').text.split(" ")[1])
+                    except IndexError:
+                        price = 0.00
                     break
 
             adjustment_price = price * qty
-            if (qty >= 1000) or (adjustment_price >= 10000):
-                print(f"Adjusment: ${adjustment_price}")
+            print(f"Adjusment: ${adjustment_price}")
+            if (qty >= 1000) or (adjustment_price >= 10000):                
                 return True
             else:
-                print(f"Adjusment: ${adjustment_price}")
                 return False
 
 
