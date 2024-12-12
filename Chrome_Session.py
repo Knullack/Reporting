@@ -50,13 +50,13 @@ ARGUMENTS = constants.ARGUMENTS
 class chromeSession():
     def __init__(self, site: str, badge: int, port: int, headless: bool):
         """Sideline Shorting, DeleteItems App, PickUI and other ICQA related data scrapping. Use close() method to end chrome process"""
-        self.step: int
-        self.driver: Chrome
-        self.badge: str = str(badge)
-        self.site: str = str(site).upper()
-        self.file_prefixes: list[str] = ["Pick All types", "Bin Item Defects All types"]
-        self.port: int = port
-        self.tab_handles: dict = {}
+        self.step = int
+        self.driver = None
+        self.badge = str(badge)
+        self.site = str(site).upper()
+        self.file_prefixes = ["Pick All types", "Bin Item Defects All types"]
+        self.port = port
+        self.tab_handles = {}
         self.start(headless)
 
     def install_module(self, module_name: str) -> None:
@@ -71,7 +71,7 @@ class chromeSession():
                 logging.error(f"Error installing {module_name}: {e}")
                 sys.exit(1)
 
-    def HELPER_type_and_click(self, element: WebElement, text_to_type: str) -> None:
+    def HELPER_type_and_click(self, element: object, text_to_type: str) -> None:
         element.send_keys(text_to_type)
         element.send_keys(Keys.ENTER)
 
@@ -91,10 +91,10 @@ class chromeSession():
     
     def launch_chrome_with_remote_debugging(self) -> None:
         import subprocess
-        chrome_path: str = CHROME_PATH
+        chrome_path = CHROME_PATH
         subprocess.Popen([chrome_path, f"--remote-debugging-port={self.port}"])
 
-    def start(self, headless: bool) -> None:
+    def start(self, headless: bool) -> object:
         """Starts a Chrome browser session"""
         
         self.install_module('selenium')
@@ -121,9 +121,9 @@ class chromeSession():
 
     def get_text(self, site: str, xpath: str) -> str:
         """Retrieves the text at the given -xpath from the given -site"""
-        table: WebElement
+        table = None
         actions = ActionChains(self.driver)
-        siteERR: WebElement | bool
+        siteERR = None
         attempt = 0
         while attempt < 2:
             try:
@@ -148,7 +148,7 @@ class chromeSession():
                     if table:
                         actions.move_to_element(table)
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, xpath)))
-                    element: WebElement = self.driver.find_element(By.XPATH, xpath)
+                    element = self.driver.find_element(By.XPATH, xpath)
                     actions.move_to_element(element).perform()
                     return element.text
                 else:
@@ -156,9 +156,8 @@ class chromeSession():
             except WebDriverException as WDE:
                 # return f"Element not found for site '{site}' with XPath '{xpath}'"
                 raise NoSuchElementException
-        return ""
 
-    def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float | None:
+    def download_csv(self, url: str, button_xpath: str, download_dir: str, pick_andon: bool = False) -> int | float:
         self.navigate(url)
 
         # Wait for the download button to become clickable
@@ -184,7 +183,6 @@ class chromeSession():
             return num_rows
         else:
             print("CSV file not found in the download directory.")
-            return None
 
     def close(self) -> None:
         def close_chrome_processes():
@@ -207,11 +205,11 @@ class chromeSession():
             self.driver.quit()
             close_chrome_processes()
         else:
-            return logging.info('No session active')
+            return logging.INFO('No session active')
 
-    def SBC_accuracy(self, site: str, download_anchor_xPath: str, download_dir: str) -> str |None:
+    def SBC_accuracy(self, site: str, download_anchor_xPath: str, download_dir: str) -> float:
         """Gets and calculates % average"""
-        def calculate_average(csv_file: str, column_index: int, start_row: int) -> str:
+        def calculate_average(csv_file: str, column_index: int, start_row: int) -> float:
             """Calculates average % from file"""
             with open(csv_file, 'r') as file:
                 reader = csv.reader(file)
@@ -265,12 +263,12 @@ class chromeSession():
                 return calculate_average(latest_file, 5, 1)
             else:
                 print("CSV file not found in the download directory.")
-                return None
+
 
         except TimeoutException:
             return "SBC_Accuracy: Element not found"
 
-    def CC_Completion(self, site: str, download_anchor_xPath: str, download_dir: str) -> tuple | str | None:
+    def CC_Completion(self, site: str, download_anchor_xPath: str, download_dir: str) -> tuple:
         """Gets and calculates work_type sum"""
         def calculate_counts(csv_file: str) -> tuple:
             """Counts sum each work_type column from given file"""
@@ -354,12 +352,11 @@ class chromeSession():
                     return "CC_Completion: Element not found"
             else:
                 attempt += 1
-        return None
 
-    def timeline(self) -> tuple[str, str]:
+    def timeline(self) -> tuple:
         """returns (current week's start of week (sunday) date & default time (07:00), current day date & default time (18:00))"""
-        dFrom: str =f"{datetime.now().date() + timedelta(self.subtract_by(datetime.now().weekday()))} 07:00:00.000"
-        dNow: str = f"{datetime.now().date()} 18:00:00.000"
+        dFrom =f"{datetime.now().date() + timedelta(self.subtract_by(datetime.now().weekday()))} 07:00:00.000"
+        dNow = f"{datetime.now().date()} 18:00:00.000"
         return (dFrom, dNow)
 
     def subtract_by(self, day: int) -> int:
@@ -380,7 +377,6 @@ class chromeSession():
                 return -6
             case 6: # sunday
                 return 0
-        return 0
 
     def deleteItem(self, container: str, mode: Literal['container', 'single'], *arg, **title):
         """Uses DeleteItemsApp to 'delete' the container"""
@@ -389,7 +385,7 @@ class chromeSession():
         self.navigate('https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop')if self.driver.current_url != 'https://aft-qt-na.aka.amazon.com/app/deleteitems?experience=Desktop' else None
         def get_container(tr):
             """Gets the container from the peculiar inventory site"""
-            cnt: str = self.get_text(f'https://peculiar-inventory-na.aka.corp.amazon.com/{self.site}/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
+            cnt = self.get_text(f'https://peculiar-inventory-na.aka.corp.amazon.com/{self.site}/report/Inbound?timeWindow=MoreThanFiveDay&containerType=DROP_ZONE_PRIME&containerLevel=PARENT_CONTAINER', f'/html/body/div[1]/div[3]/div/div[1]/div/div[1]/table/tbody/tr[{tr}]/td[3]/a')
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.peculiar_inventory.table_body)))
             # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]')))
             # self.move_container(container, 'TRASH')
@@ -398,7 +394,7 @@ class chromeSession():
             if "B00" in asin or 'X00' in asin:
                 return cnt
 
-        def wait_for_processing() -> None:
+        def wait_for_processing():
             try:
                 WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element_attribute((By.XPATH, locator.xpath.fcmenu.itemApps.delete.processing_element), 'class', locator.class_name.itemApps.delete.processing_visible))
                 WebDriverWait(self.driver, 10).until(EC.text_to_be_present_in_element_attribute((By.XPATH, locator.xpath.fcmenu.itemApps.delete.processing_element), 'class', locator.class_name.itemApps.delete.processing_hidden))
@@ -415,20 +411,20 @@ class chromeSession():
         #             return True
 
 
-        def set_mode(mode) -> None:
-            current_mode: str = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.modes.current_mode))).text.lower()
+        def set_mode(mode):
+            current_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.modes.current_mode))).text.lower()
             
-            def click_menu() -> None:
+            def click_menu():
                 WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fcmenu.itemApps.delete.menu))).click()
 
-            def click_change_mode() -> None:
+            def click_change_mode():
                 # if userMenu_is_displayed(True):
                 time.sleep(1)
-                change_mode: WebElement = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.btn_change_mode)))
-                coord: dict[str, int] = change_mode.location_once_scrolled_into_view
+                change_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.btn_change_mode)))
+                coord = change_mode.location_once_scrolled_into_view
                 self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
             
-            def click_mode(mode_) -> None:
+            def click_mode(mode_):
                 WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.modes.select_modes_banner)))
                 if mode_ == 'single':
                     WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fcmenu.itemApps.delete.modes.single))).click()
@@ -557,8 +553,7 @@ class chromeSession():
                 if f"Container {container} is empty." in cnt_empty_message.text:
                     print(f'{container}: {cnt_empty_message.text}')
                     return False
-            return False
-            
+                
         def select_reason() -> None:
             """Reason already selected, function simulates form submit"""
             # wait for selection to be present
@@ -668,7 +663,7 @@ class chromeSession():
 
         def start_over() -> None:
             """Perform the 'start over' action in the 'Menu (m)' selection of the site"""
-            head: str = get_header_text()
+            head = get_header_text()
             try:
                 if head != header.SCAN[0]:
                     menu = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fcmenu.itemApps.delete.menu)))
@@ -677,8 +672,8 @@ class chromeSession():
                     # wait for popup content
                     time.sleep(.5)
                     try:
-                        restart: WebElement = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.btn_restart)))
-                        coord: dict[str, int] = restart.location_once_scrolled_into_view
+                        restart = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.btn_restart)))
+                        coord = restart.location_once_scrolled_into_view
                         self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
                     except MoveTargetOutOfBoundsException:
                         self.driver.find_element(By.XPATH, locator.body).send_keys('r')
@@ -689,7 +684,6 @@ class chromeSession():
                     pass
             except TimeoutException:
                 pass
-
         def get_header_text() -> str:
             """Gets the text of the header element to derive what step of the process the app is on"""
             try:
@@ -697,17 +691,16 @@ class chromeSession():
             except Exception:
                 self.driver.refresh()
                 return WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.H1_header))).text
-
         def set_mode(mode):
             current_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.modes.current_mode))).text.lower()
             
-            def click_menu() -> None:
+            def click_menu():
                 WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, locator.xpath.fcmenu.itemApps.delete.menu))).click()
 
             def click_change_mode():
                 time.sleep(1)
-                change_mode: WebElement = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.btn_change_mode)))
-                coord: dict[str, int] = change_mode.location_once_scrolled_into_view
+                change_mode = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.btn_change_mode)))
+                coord = change_mode.location_once_scrolled_into_view
                 self.actions.move_by_offset(coord['x'], coord['y']).click().perform()
             
             def click_mode(mode_):
@@ -730,11 +723,11 @@ class chromeSession():
 
         def enter_container(cont) -> None:
             """Types in the given container in the input field"""
-            input_container: WebElement = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.itemApps.delete.scan.input)
+            input_container = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.itemApps.delete.scan.input)
             input_container.click()
 
             input_container.send_keys(f'{cont}')
-            container_enter: WebElement = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.itemApps.delete.scan.enter)
+            container_enter = self.driver.find_element(By.XPATH, locator.xpath.fcmenu.itemApps.delete.scan.enter)
             container_enter.submit()
         
         def enter_item(item) -> bool | int:
@@ -744,19 +737,25 @@ class chromeSession():
             def check_if_multiple_item_selections():
                 try:
                     count = 0
-                    selection_list: list[WebElement] = WebDriverWait(self.driver, 1).until(EC.presence_of_all_elements_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/fieldset')))
+                    selection_list = WebDriverWait(self.driver, 1).until(EC.presence_of_all_elements_located((By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/span/form/div[2]/fieldset')))
                     for line in selection_list[0].text:
                         if line == "Title":
                             count += 1
                     a = count
                 except TimeoutException:
                     try:
-                        cnt_empty_message: WebElement = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.select.container_empty)))
+                        cnt_empty_message = WebDriverWait(self.driver, .5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.delete.select.container_empty)))
                         if f"Item {item} not in container" in cnt_empty_message.text:
                             print(f'{container}: {cnt_empty_message.text}')
                             return False
                     except TimeoutException:
                         return True
+
+                # if len(boxes) <= 1:
+                #     return False
+                # elif len(boxes) >= 1:
+                #     return len(boxes)
+
 
             def check_if_not_in_container():
                 head = get_header_text()
@@ -848,12 +847,15 @@ class chromeSession():
     def rodeo_delete(self, scannable_id: str, FN_SKU: str):
         """Delete items from rodeo"""
         
-        def get_title(sku: str) -> str | None: 
+        def get_title(sku: str) -> str: 
             self.navigate(f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={sku}')
             try:
                 table =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.table)))
                 rows = table.find_elements(By.XPATH, "//tr")
-                return next((row.text.split("Title ", 1)[1] for row in rows if "Title" in row.text), None)
+
+                for row in rows:
+                    if "Title" in row.text:
+                        return row.text.split("Title ", 1)[1]
             except TimeoutException:
                 return ''
 
@@ -863,18 +865,18 @@ class chromeSession():
         """
         Short containers via SidelineApp
         """
-        STEP: str | int
+        STEP = str
         url_sideline = 'https://aft-poirot-website-iad.iad.proxy.amazon.com/'
         try:
             self.navigate(url_sideline) if self.driver.current_url != url_sideline else None
-        except NoSuchWindowException as e:
+        except NoSuchWindowException:
             print(f"Verify Chrome Window is displayed on-screen, it seems it is not\n\nError:\n{e}")
             sys.exit(0)
         if self.driver.current_url != url_sideline:
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.problem_solve))).click()
             WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline_app))).click()
 
-        def get_step() -> str:
+        def get_step():
             text =  WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline.source_container))).text
             if text == "":
                 return 'scan container'
@@ -882,10 +884,10 @@ class chromeSession():
                 text = 'item'
             return text
         
-        def start_over() -> None:
+        def start_over():
             self.driver.refresh()
 
-        def enter_container(csX) -> None:
+        def enter_container(csX):
             if self.step == 0:
                 input = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline.input)))
                 input.send_keys(csX)
@@ -898,13 +900,13 @@ class chromeSession():
                     self.step = 1
                 
             else: pass
-        def change_container() -> None:
+        def change_container():
             if self.step == 1:
                 button = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline.change_container)))
                 button.click()
                 self.step = 2
             else: pass
-        def confirm() -> str | int:
+        def confirm():
             if self.step == 3:
                 try:
                     WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.sideline.confirmation_yes))).click()
@@ -912,9 +914,8 @@ class chromeSession():
                     return 'end'
                 except TimeoutException:
                     self.step = 2
-                    return self.step
-            else:
-                return self.step
+            else: pass
+        STEP = str
         start_over()
         self.step = 0
         while STEP != 'end':
@@ -993,7 +994,6 @@ class chromeSession():
                     return 'clean'
             except TimeoutException:
                 return 'clean'
-            return 'clean'
 
         def scan_cage(paX):
             time.sleep(1)
@@ -1053,7 +1053,7 @@ class chromeSession():
         status = bool | str
         select_no_batch()
         scan_vehicle(vehicle)
-        status: str = check_vehicle()
+        status = check_vehicle()
         if status == 'no work':
             # self.move_container()
             print("No work")
@@ -1077,7 +1077,7 @@ class chromeSession():
             switch_to_tab(0)
             scan_cage(cage)
             check_if_pallet()
-            case: str = ''
+            case = ''
             while True:
                 if 'csX' in case:
                     break
@@ -1089,7 +1089,7 @@ class chromeSession():
                     case = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.pickUI.scan_bin.case))).text
 
             switch_to_tab(1)
-            self.deleteItem(case, 'single')
+            self.deleteItem(case)
             switch_to_tab(2)
             self.move_container(200, case, str(deleted_container_to_dz))
             switch_to_tab(0)
@@ -1105,9 +1105,8 @@ class chromeSession():
             scan(self.driver.find_element(By.XPATH, locator.xpath.fcmenu.pickUI.scan_case.input), case)
             self.driver.find_element(By.XPATH, locator.xpath.fcmenu.pickUI.scan_case.commit).submit()
             return case
-        return ''
         
-    def move_container(self, workflow: Literal[200, 300], container: str, destination: str) -> bool:
+    def move_container(self, workflow: Literal[200, 300], container: str, destination: str) -> None:
         """Moves container with Move Container App"""
         move_fails = ['Move was unsuccessful']
         move_URL = f'https://aft-moveapp-iad-iad.iad.proxy.amazon.com/move-container?jobId={workflow}'
@@ -1228,7 +1227,6 @@ class chromeSession():
                     enter_container(destination)
                 time.sleep(1.5)
         time.sleep(1)
-        return False
 
     def screenshot(self, site, xpath):
         """Screenshot given element at given site"""
@@ -1310,7 +1308,7 @@ class chromeSession():
         # time.sleep(3)
         continueC()
 
-    def get_container_data(self, container: str, *extract_value: Union[str, Container], **write_to_csv: bool):
+    def get_container_data(self, container, *extract_value: Union[str, Container], **write_to_csv: bool):
         """Gets the consumer label from a given container\n
         if `extract_value` is given, function returns said value, if not... function will write data to csv
         in current directory\n
@@ -1367,7 +1365,7 @@ class chromeSession():
             FCR = f'https://fcresearch-na.aka.amazon.com/{self.site}/results?s={container}'
             self.navigate(FCR)
 
-        def checked_inventory() -> Union[bool, None]:
+        def checked_inventory() -> bool:
             time.sleep(1)
             while True:
                 inventory_label = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, "inventory-status")))
@@ -1618,7 +1616,7 @@ class chromeSession():
         cont_hist_data = container_history()
         if data != "No Inventory" or len(container_details_containers) > 0:
             if len(container_details_containers) > 0:
-                data_pairing(container_details_containers, hist=True, row = 3, target=container_details_containers)
+               data_pairing(container_details_containers, hist=True, row = 3, target=container_details_containers)
             
             if data == "No Inventory":
                 data = {container : '-'}
@@ -1637,7 +1635,7 @@ class chromeSession():
             csv_write(container)
 
     def andons(self, bin_id, type):
-        fnsku_qty: tuple[str,str]
+        fnsku_qty = None
         def andon_nx_path(n):
             return f"/html/body/div/div/div/awsui-app-layout/div/main/div/div[2]/div/span/div/awsui-table/div/div[3]/table/tbody/tr[{n+1}]/td[12]/span/awsui-button/button"
         
@@ -1812,9 +1810,9 @@ class chromeSession():
             csX = match.group(0) if match else ""
             return csX
 
-        def container_loaded(by: str, locator_str: str) -> [bool, None]:
-            section: WebElement
-            unclickable_section: Union[WebElement, bool]
+        def container_loaded(by: By, locator_str: locator):
+            section = None
+            unclickable_section = None
             while True:
                 try:
                     tab_switch(self.tab_handles[tab_names.FCR])
@@ -1857,7 +1855,7 @@ class chromeSession():
                 open_new_tab_and_switch(FCR, tab_names.FCR)
             if self.driver.current_url != FCR:
                 self.navigate(FCR)
-            inventory_section: bool = container_loaded(By.ID, locator.ID.fcmenu.fcresearch.inventory.table)
+            inventory_section = container_loaded(By.ID, locator.ID.fcmenu.fcresearch.inventory.table)
             if not inventory_section:
                 while True:
                     try:
@@ -1906,18 +1904,17 @@ class chromeSession():
            
 
         def get_FNSKU_Qty() -> tuple:
-            entry_count_info: str = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.fcresearch.inventory_history.entry_info))).text.strip()
-            count: int = int(re.findall(r'\d+', entry_count_info)[-1]) if re.findall(r'\d+', entry_count_info) else 0
+            entry_count_info = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.fcresearch.inventory_history.entry_info))).text.strip()
+            count = int(re.findall(r'\d+', entry_count_info)[-1]) if re.findall(r'\d+', entry_count_info) else 0
             if count >= 1:
-                table: WebElement =  WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.fcresearch.inventory_history.entries_table)))
-                rows: list[WebElement] = table.find_elements(By.TAG_NAME, 'tr')
-                FNSKU: str = rows[1].find_elements(By.TAG_NAME, 'td')[4].text.strip()
-                qty: str = rows[1].find_elements(By.TAG_NAME, 'td')[7].text.strip()
+                table =  WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.fcresearch.inventory_history.entries_table)))
+                rows = table.find_elements(By.TAG_NAME, 'tr')
+                FNSKU = rows[1].find_elements(By.TAG_NAME, 'td')[4].text.strip()
+                qty = rows[1].find_elements(By.TAG_NAME, 'td')[7].text.strip()
                 return (FNSKU, qty)
-            return (None, None)
 
-        def add_inventory() -> None:
-            def container() -> None:
+        def add_inventory():
+            def container():
                 # type container
                 container_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.itemApps.add_items.container)))
                 # Enter (continue)
@@ -1932,20 +1929,20 @@ class chromeSession():
                         tab_switch(self.tab_handles[tab_names.ADD_ITEM])
                     else:
                         break
-            def item() -> None:
+            def item():
                 # enter item
                 item_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.itemApps.add_items.item)))
                 item_entry.clear()
                 item_entry.send_keys(fnsku_qty[0])
                 item_entry.send_keys(Keys.ENTER)
             
-            def qty(qty: str) -> None:
-                def verify_qty(qty: str) -> None:
-                    current_qty: str = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.itemApps.add_items.itemQuantityElement))).text
+            def qty(qty):
+                def verify_qty(qty):
+                    current_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.itemApps.add_items.itemQuantityElement))).text
                     if current_qty != qty:
-                        update_qty: WebElement = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.add_items.update_qty_btn)))
+                        update_qty = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.itemApps.add_items.update_qty_btn)))
                         update_qty.click()
-                        qty_entry: WebElement = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.itemApps.add_items.itemQTY)))
+                        qty_entry = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, locator.ID.fcmenu.itemApps.add_items.itemQTY)))
                         qty_entry.clear()
                         qty_entry.send_keys(qty)
                         qty_entry.send_keys(Keys.ENTER)
@@ -2176,23 +2173,23 @@ class chromeSession():
             except TimeoutException:
                 self.andons(bin_id, type)
             if child_containers:
-                paX: str = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
+                paX = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.fcresearch.child_containers_table_first_row))).text
                 self.navigate(printing_url)
                 printData(bin_id, bin_id, "1")
                 time.sleep(1)
                 printData(paX, paX, "1")
                 time.sleep(1.5)
-
-    def labor_track(self, code: str, badge_id: str) -> None:
+        
+    def labor_track(self, code: str, badge_id: str):
         self.navigate(f"https://fcmenu-iad-regionalized.corp.amazon.com/{self.site}/laborTrackingKiosk")
         
         def enter_code(calmCode: str):
-            ele_calmCode: WebElement = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.calmCode)))
+            ele_calmCode = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.calmCode)))
             ele_calmCode.send_keys(calmCode)
             ele_calmCode.send_keys(Keys.ENTER)
 
         def enter_badge(badge: str):
-            ele_badge_id: WebElement = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.badge_id)))
+            ele_badge_id = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, locator.xpath.fcmenu.labor_tracking.badge_id)))
             ele_badge_id.send_keys(badge)
             ele_badge_id.send_keys(Keys.ENTER)
 
