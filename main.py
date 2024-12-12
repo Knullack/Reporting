@@ -58,8 +58,8 @@ class run():
 
 
 if __name__ == "__main__":
-    # session = chromeSession('hdc3', 12730876, 1922, False)
-    # instance = run(session)
+    session = chromeSession('hdc3', 12730876, 1922, False)
+    instance = run(session)
 
     list_bins: list = [
 
