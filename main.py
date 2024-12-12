@@ -56,57 +56,6 @@ class run():
     def close(self):
         self.instance.close()
 
-    # New method for running multiple instances
-    @staticmethod
-    def run_multiple_instances(bin_ids: list, site: str, badge: int, ports: list[int], andon_type: str, headless: bool = False):
-        """
-        Run multiple browser instances to process bin IDs in parallel.
-        
-        Args:
-            bin_ids (list): List of bin IDs to process.
-            site (str): Site name.
-            badge (int): Badge ID.
-            ports (list[int]): List of ports for each browser instance.
-            andon_type (str): Andon type to resolve.
-            headless (bool): Run browsers in headless mode.
-        """
-        if not ports:
-            print("Please provide at least one port.")
-            return
-
-        # Split bins evenly across instances
-        split_bins = [bin_ids[i::len(ports)] for i in range(len(ports))]
-
-        threads = []
-        for idx, bins in enumerate(split_bins):
-            port = ports[idx]
-            thread = Thread(target=run._process_bins, args=(f"Instance {idx+1}", bins, site, badge, port, andon_type, headless))
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-    @staticmethod
-    def _process_bins(instance_name: str, bins: list, site: str, badge: int, port: int, andon_type: str, headless: bool):
-        """
-        Process bins for a single browser instance.
-
-        Args:
-            instance_name (str): Name of the instance.
-            bins (list): List of bin IDs.
-            site (str): Site name.
-            badge (int): Badge ID.
-            port (int): Port for the browser instance.
-            andon_type (str): Andon type to resolve.
-            headless (bool): Run browser in headless mode.
-        """
-        session = chromeSession(site, badge, port, headless)
-        instance = run(session)
-        print(f"{instance_name}: Starting with {len(bins)} bins.")
-        instance.resolve_andon(bins, andon_type)
-        instance.close()
-        print(f"{instance_name}: Completed.")
 
 if __name__ == "__main__":
     # session = chromeSession('hdc3', 12730876, 1922, False)
@@ -124,9 +73,6 @@ if __name__ == "__main__":
 
     }
 
-    def generate_ports(start_port: int, count: int) -> list[int]:
-        return [start_port + i for i in range(count)]
-
     # instance.deleteItem(list_containers, mode='container')
     # instance.rodeo_delete(dict_containers)
     # instance.sideline(list_containers)
@@ -134,9 +80,6 @@ if __name__ == "__main__":
     # instance.containerData(list_containers, '')
     # instance.unbind(list_containers)
     # instance.print_andons(list_bins, andon_types.noScannableBarcode)
-    # instance.resolve_andon(list_bins, andon_types.unexpectedContainerOverage)
-    ports = generate_ports(1922, 3)
-    run.run_multiple_instances(list_bins, 'hdc3', 12730876, ports, andon_types.unexpectedContainerOverage)
-
+    instance.resolve_andon(list_bins, andon_types.unexpectedContainerOverage)
 
     instance.close()
