@@ -1719,7 +1719,7 @@ class chromeSession():
                     time.sleep(.7)
                     click_andon(row_num)
                     time.sleep(.7)
-                    click_view_edit()
+                    click_view_edit(row_num)
                     time.sleep(.7)
                     click_resolve_box(row_num)
                 except TimeoutException:
