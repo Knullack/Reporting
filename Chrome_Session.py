@@ -1817,6 +1817,7 @@ class chromeSession():
                 try:
                     tab_switch(self.tab_handles[tab_names.FCR])
                     section = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((by, locator_str)))
+                    unclickable_section = False
                 except TimeoutException:
                     unclickable_section = WebDriverWait(self.driver, 5).until_not(EC.element_to_be_clickable((by, locator_str)))
                     unclickable_section = True
